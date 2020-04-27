@@ -13,7 +13,7 @@ import torch
 import pandas as pd
 
 def train_dqn(ckpt,model_name,dynamic,soft):
-    env = System
+    env = System()
     scores = []
     brain = DAgent(gamma=GAMMA, epsilon=EPSILON, batch_size=BATCH_SIZE, n_actions=N_ACTIONS,
                   input_dims=INPUT_DIMS,  lr = LEARNING_RATE, eps_dec = EPS_DECAY, ckpt=ckpt)

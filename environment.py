@@ -74,7 +74,7 @@ class System:
         self.ambient_temperatures = pd.read_csv(
             '../heating-RL-agent/data/environment/ninja_weather_55.6838_12.5354_uncorrected.csv',
             header=3).iloc[self.random_day:self.random_day+NUM_HOURS+1,2]
-        self.ambient_temperature = self.ambient_temperatures[random_day]
+        self.ambient_temperature = self.ambient_temperatures[self.random_day]
         ### Based on the same day, choose the sun irradiation for the episode
 
         self.sun_powers = pd.read_csv(
@@ -99,7 +99,7 @@ class Building:
         self.name = name
         self.time = 0
         self.base_loads = pd.read_csv(
-            '../multi-building-RL/data/environment/2014_DK2_scaled_loads.csv',header=0).iloc[self.random_day:self.random_day+NUM_HOURS+1,1]
+            '../multi-building-RL/data/environment/2014_DK2_scaled_loads.csv',header=0).iloc[random_day:random_day+NUM_HOURS+1,1]
         self.base_loads += np.random.normal(loc=0.0, scale=0.075/1000, size=NUM_HOURS+1)
         self.base_load = self.base_loads[random_day]
         self.inside_temperature = 21
@@ -169,7 +169,7 @@ class Building:
         self.time = 0
         self.base_loads = pd.read_csv(
             '../multi-building-RL/data/environment/2014_DK2_scaled_loads.csv',
-            header=0).iloc[self.random_day:self.random_day+NUM_HOURS+1,1]
+            header=0).iloc[random_day:random_day+NUM_HOURS+1,1]
         self.base_loads += np.random.normal(loc=0.0, scale=0.075, size=NUM_HOURS+1)
         self.base_load = self.base_loads[random_day]
 
