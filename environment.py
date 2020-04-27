@@ -83,8 +83,9 @@ class System:
             '../heating-RL-agent/data/environment/ninja_weather_55.6838_12.5354_uncorrected.csv',
             header=3).iloc[self.random_day:self.random_day+NUM_HOURS+1,3]
 
+        total_load = 0
         for building in self.buildings:
-            building.reset(self.random_day, self.ambient_temperatures, self.sun_powers)
+            total_load += building.reset(self.random_day, self.ambient_temperatures, self.sun_powers)
 
         return [self.ambient_temperature, total_load,
                 self.time % int(24 * 3600 // TIME_STEP_SIZE)]
@@ -176,7 +177,7 @@ class Building:
             header=0).iloc[random_day:random_day+NUM_HOURS+1,1]
         self.base_loads += np.random.normal(loc=0.0, scale=0.075, size=NUM_HOURS+1)
         self.base_load = self.base_loads[random_day]
-
+        return self.base_load
 
 
 
