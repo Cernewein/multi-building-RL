@@ -37,7 +37,9 @@ class System:
 
     def step(self, action):
 
-        total_load, building_costs = self.get_loads_and_costs(action)
+        price = PRICE_SET[action]
+
+        total_load, building_costs = self.get_loads_and_costs(price)
 
         r = self.reward(total_load, building_costs)
         self.time +=1
@@ -81,7 +83,7 @@ class System:
             '../heating-RL-agent/data/environment/ninja_weather_55.6838_12.5354_uncorrected.csv',
             header=3).iloc[self.random_day:self.random_day+NUM_HOURS+1,3]
 
-        for building in buildings:
+        for building in self.buildings:
             building.reset(self.random_day, self.ambient_temperatures, self.sun_powers)
 
 
@@ -153,7 +155,7 @@ class Building:
         self.base_load = self.base_loads[self.random_day + (self.time * TIME_STEP_SIZE) // 3600]
         return total_load, total_cost
 
-    def reset(self, random_day ,ambient_temperatures, sun_powers, ):
+    def reset(self, random_day ,ambient_temperatures, sun_powers):
         """
         This method is resetting the attributes of the building.
 
@@ -165,7 +167,6 @@ class Building:
         self.ambient_temperature = self.ambient_temperatures[random_day]
         self.sun_powers = sun_powers
         self.sun_power = self.sun_powers[random_day]
-        self.name = name
         self.time = 0
         self.base_loads = pd.read_csv(
             '../multi-building-RL/data/environment/2014_DK2_scaled_loads.csv',
