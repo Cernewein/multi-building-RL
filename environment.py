@@ -86,6 +86,9 @@ class System:
         for building in self.buildings:
             building.reset(self.random_day, self.ambient_temperatures, self.sun_powers)
 
+        return [self.ambient_temperature, total_load,
+                self.time % int(24 * 3600 // TIME_STEP_SIZE)]
+
 
 class Building:
     """ This class represents the building that has to be controlled. Its dynamics are modelled based on an RC analogy.
@@ -173,5 +176,7 @@ class Building:
             header=0).iloc[random_day:random_day+NUM_HOURS+1,1]
         self.base_loads += np.random.normal(loc=0.0, scale=0.075, size=NUM_HOURS+1)
         self.base_load = self.base_loads[random_day]
+
+
 
 
