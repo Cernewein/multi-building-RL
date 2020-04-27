@@ -37,9 +37,11 @@ class System:
 
     def step(self, action):
 
-        price = PRICE_SET[action]
+        price = PRICE_SET[int(action)]
 
         total_load, building_costs = self.get_loads_and_costs(price)
+
+        self.ambient_temperature = self.ambient_temperatures[self.random_day + (self.time * TIME_STEP_SIZE) // 3600]
 
         r = self.reward(total_load, building_costs)
         self.time +=1
@@ -47,7 +49,7 @@ class System:
         if self.time >= NUM_TIME_STEPS:
             self.done = True
 
-        self.ambient_temperature = self.ambient_temperatures[self.random_day + (self.time * TIME_STEP_SIZE)//3600]
+
         return [self.ambient_temperature, total_load,
                 self.time % int(24 * 3600 // TIME_STEP_SIZE)], r, self.done  #
 
@@ -83,12 +85,15 @@ class System:
             '../heating-RL-agent/data/environment/ninja_weather_55.6838_12.5354_uncorrected.csv',
             header=3).iloc[self.random_day:self.random_day+NUM_HOURS+1,3]
 
+        self.done = False
+        self.time = 0
         total_load = 0
         for building in self.buildings:
             total_load += building.reset(self.random_day, self.ambient_temperatures, self.sun_powers)
 
         return [self.ambient_temperature, total_load,
                 self.time % int(24 * 3600 // TIME_STEP_SIZE)]
+
 
 
 class Building:
@@ -137,8 +142,6 @@ class Building:
         else:
             selected_action = 0
 
-        print(self.inside_temperature)
-        print(selected_action)
 
         delta = 1 / (R_IA * C_I) * (self.ambient_temperature - self.inside_temperature) + \
                 self.heat_pump_power(NOMINAL_HEAT_PUMP_POWER*selected_action)/C_I + A_w*self.sun_power/C_I
@@ -149,8 +152,6 @@ class Building:
         heat_pump_power = selected_action * NOMINAL_HEAT_PUMP_POWER / (1e6) * TIME_STEP_SIZE / 3600
         total_load = (heat_pump_power + self.base_load)
         total_cost = total_load*price + current_penalty
-        print(total_load*price)
-        print(current_penalty)
 
         self.time +=1
 
