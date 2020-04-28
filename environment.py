@@ -137,7 +137,6 @@ class Building:
         expected_cost = (PRICE_SENSITIVITY * NOMINAL_HEAT_PUMP_POWER / (1e6) * price * TIME_STEP_SIZE / 3600)
 
         if current_penalty -  expected_cost> 0:
-
             selected_action = 1
         else:
             selected_action = 0
@@ -176,7 +175,8 @@ class Building:
         self.base_loads = pd.read_csv(
             '../multi-building-RL/data/environment/2014_DK2_scaled_loads.csv',
             header=0).iloc[random_day:random_day+NUM_HOURS+1,1]
-        self.base_loads += np.random.normal(loc=0.0, scale=0.075, size=NUM_HOURS+1)
+        self.base_loads += np.random.normal(loc=0.0, scale=0.075/1000, size=NUM_HOURS+1)
+        print(self.base_loads.loc[self.base_loads <= 0])
         self.base_load = self.base_loads[random_day]
         return self.base_load
 
