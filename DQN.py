@@ -74,7 +74,7 @@ class DAgent():
     :param eps_dec: The decay applied to epsilon after each epoch
     """
     def __init__(self, gamma, epsilon, lr, input_dims, batch_size, n_actions,
-                 mem_size = int(1e6), momentum=0.95 ,eps_end = 0.1, eps_dec = 0.996,ckpt=None):
+                 mem_size = int(1e6), momentum=0.95 ,eps_end = 0.1, eps_dec = 0.996,ckpt=None, decay_rate = 0.0001):
         """Constructor method
         """
         self.normalizer = Normalizer(input_dims)
@@ -94,7 +94,7 @@ class DAgent():
             self.policy_net.load_state_dict(checkpoint['model_state_dict'])
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
-        self.optimizer = optim.RMSprop(self.policy_net.parameters(), lr=lr, momentum=momentum) #optim.Adam(self.policy_net.parameters(), lr=lr) #
+        self.optimizer = optim.RMSprop(self.policy_net.parameters(), lr=lr, momentum=momentum, weight_decay=decay_rate) #optim.Adam(self.policy_net.parameters(), lr=lr) #
         self.memory = ReplayMemory(mem_size)
         self.steps_done = 0
 

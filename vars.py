@@ -13,8 +13,8 @@ LEARNING_RATE_ACTOR = 1e-4
 LEARNING_RATE_CRITIC = 1e-3
 GAMMA = 0.99
 TARGET_UPDATE = 10
-BATCH_SIZE = 64
-PRICE_SET = [0,5,10,15,20,25,30,35,40]
+BATCH_SIZE = 32
+PRICE_SET = [5,10,15,20,25,30,35,40,45,50]
 N_ACTIONS = len(PRICE_SET)
 INPUT_DIMS = 3
 FC_1_DIMS = 300
@@ -22,11 +22,11 @@ FC_2_DIMS = 600
 FC_3_DIMS = FC_2_DIMS # If we don't want a third layer, set this to FC_2_DIMS
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 TAU = 0.001 # For soft update
-MEMORY_SIZE = 400000
+MEMORY_SIZE = 1000*31*24
 
 
 ##### Environment parameters
-COMFORT_PENALTY = 10 # Penalty applied when going outside of "comfort" bounds
+COMFORT_PENALTY = 1 # Penalty applied when going outside of "comfort" bounds
 T_MIN = 19.5 # Minimum temperature that should be achieved inside of the building
 T_MAX = 22.5 # Maximum temperature that should be achieved inside of the building
 C_I = 2.07*3.6e6 # Based on Emil Larsen's paper - heat capacity of the building
@@ -36,6 +36,6 @@ R_IE = 0.909e-3 # Thermal resistance between interior and ambient. Based on Emil
 R_EA = 4.47e-3 # Thermal resistance between interior and ambient. Based on Emil Larsen's paper
 A_w = 7.89 # Window surface area
 NOMINAL_HEAT_PUMP_POWER = 2000 # 2kW based on some quick loockup of purchaseable heat pumps
-PRICE_SENSITIVITY = 1
-L_MAX = 6 / 1000 # N kWh scales down to MWh
-LOAD_PENALTY = 1000
+PRICE_SENSITIVITY = 10
+L_MAX = 6.6 / 1000 # N kWh scales down to MWh
+LOAD_PENALTY = 10

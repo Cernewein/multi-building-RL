@@ -39,6 +39,8 @@ def run(ckpt,model_name,dynamic,soft, eval, model_type):
             env = System(eval=True)
             inside_temperatures_1 = [env.buildings[0].inside_temperature]
             inside_temperatures_2 = [env.buildings[1].inside_temperature]
+            base_loads_1 = [env.buildings[0].base_load]
+            base_loads_2 = [env.buildings[1].base_load]
             ambient_temperatures = [env.ambient_temperature]
             total_loads = []
             actions = [0]
@@ -57,6 +59,8 @@ def run(ckpt,model_name,dynamic,soft, eval, model_type):
                 rewards.append(reward)
                 inside_temperatures_1.append(env.buildings[0].inside_temperature)
                 inside_temperatures_2.append(env.buildings[1].inside_temperature)
+                base_loads_1.append(env.buildings[0].base_load)
+                base_loads_2.append(env.buildings[1].base_load)
                 ambient_temperatures.append(env.ambient_temperature)
                 total_loads.append(next_state[1])
                 if not done:
@@ -72,6 +76,8 @@ def run(ckpt,model_name,dynamic,soft, eval, model_type):
             eval_data = pd.DataFrame()
             eval_data['Inside Temperatures 1'] = inside_temperatures_1
             eval_data['Inside Temperatures 2'] = inside_temperatures_2
+            eval_data['Base Loads 1'] = base_loads_1
+            eval_data['Base Loads 2'] = base_loads_2
             eval_data['Ambient Temperatures'] = ambient_temperatures
             eval_data['Actions'] = actions
             eval_data['Rewards'] = rewards

@@ -66,6 +66,7 @@ class System:
     def reward(self, total_load, building_costs):
         penalty = np.maximum(0, total_load - L_MAX)
         penalty *= LOAD_PENALTY
+        print(penalty)
 
         return  - self.zeta * building_costs - (1-self.zeta) * penalty
 
@@ -176,7 +177,6 @@ class Building:
             '../multi-building-RL/data/environment/2014_DK2_scaled_loads.csv',
             header=0).iloc[random_day:random_day+NUM_HOURS+1,1]
         self.base_loads += np.random.normal(loc=0.0, scale=0.075/1000, size=NUM_HOURS+1)
-        print(self.base_loads.loc[self.base_loads <= 0])
         self.base_load = self.base_loads[random_day]
         return self.base_load
 
