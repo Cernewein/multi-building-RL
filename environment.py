@@ -29,7 +29,7 @@ class System:
 
 
         self.buildings = [Building(random_day = self.random_day,ambient_temperatures = self.ambient_temperatures,
-                                   sun_powers = self.sun_powers, name = 'Building_{}'.format(b)) for b in range(num_buildings)]
+                                   sun_powers = self.sun_powers, name = 'Building_{}'.format(b), seed = b) for b in range(num_buildings)]
 
         self.zeta = zeta
         self.done = False
@@ -102,7 +102,7 @@ class Building:
     When instanciated, it initialises the inside temperature to 21°C, the envelope temperature to 20, and resets the done
     and time variables.
     """
-    def __init__(self,random_day, ambient_temperatures, sun_powers,  name = ''):
+    def __init__(self,random_day, ambient_temperatures, sun_powers,  name = '', seed = 0):
         self.random_day = random_day
         self.ambient_temperatures = ambient_temperatures
         self.ambient_temperature = self.ambient_temperatures[random_day]
@@ -112,6 +112,8 @@ class Building:
         self.time = 0
         self.base_loads = pd.read_csv(
             '../multi-building-RL/data/environment/2014_DK2_scaled_loads.csv',header=0).iloc[random_day:random_day+NUM_HOURS+1,1]
+        self.seed = seed
+        np.random.seed(self.seed)
         self.base_loads += np.random.normal(loc=0.0, scale=0.075/1000, size=NUM_HOURS+1)
         self.base_load = self.base_loads[random_day]
         self.inside_temperature = 21
@@ -176,6 +178,7 @@ class Building:
         self.base_loads = pd.read_csv(
             '../multi-building-RL/data/environment/2014_DK2_scaled_loads.csv',
             header=0).iloc[random_day:random_day+NUM_HOURS+1,1]
+        np.random.seed(self.seed)
         self.base_loads += np.random.normal(loc=0.0, scale=0.075/1000, size=NUM_HOURS+1)
         self.base_load = self.base_loads[random_day]
         return self.base_load
