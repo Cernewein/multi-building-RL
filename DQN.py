@@ -94,7 +94,7 @@ class DAgent():
             self.policy_net.load_state_dict(checkpoint['model_state_dict'])
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
-        self.optimizer = optim.RMSprop(self.policy_net.parameters(), lr=lr, momentum=momentum, weight_decay=decay_rate) #optim.Adam(self.policy_net.parameters(), lr=lr) #
+        self.optimizer = optim.Adam(self.policy_net.parameters(), lr=lr, weight_decay=decay_rate)#optim.RMSprop(self.policy_net.parameters(), lr=lr, momentum=momentum, weight_decay=decay_rate) # #
         self.memory = ReplayMemory(mem_size)
         self.steps_done = 0
 
