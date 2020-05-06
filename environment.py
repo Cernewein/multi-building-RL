@@ -50,7 +50,7 @@ class System:
             self.done = True
 
 
-        return [self.ambient_temperature, total_load,
+        return [self.ambient_temperature, total_load, self.buildings[0].inside_temperature, self.buildings[1].inside_temperature,
                 self.time % int(24 * 3600 // TIME_STEP_SIZE)], r, self.done  #
 
     def get_loads_and_costs(self, action):
@@ -92,7 +92,7 @@ class System:
         for building in self.buildings:
             total_load += building.reset(self.random_day, self.ambient_temperatures, self.sun_powers)
 
-        return [self.ambient_temperature, total_load,
+        return [self.ambient_temperature, total_load, self.buildings[0].inside_temperature, self.buildings[1].inside_temperature,
                 self.time % int(24 * 3600 // TIME_STEP_SIZE)]
 
 

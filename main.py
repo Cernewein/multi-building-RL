@@ -85,6 +85,39 @@ def run(ckpt,model_name,dynamic,soft, eval, model_type):
             with open(os.getcwd() + '/data/output/' + model_name + '_eval.pkl', 'wb') as f:
                 pkl.dump(eval_data, f)
 
+
+            # Evaluation if price was kept constant
+            env = System(eval=True)
+            inside_temperatures_1 = [env.buildings[0].inside_temperature]
+            inside_temperatures_2 = [env.buildings[1].inside_temperature]
+            base_loads_1 = [env.buildings[0].base_load]
+            base_loads_2 = [env.buildings[1].base_load]
+            ambient_temperatures = [env.ambient_temperature]
+            total_loads = []
+            rewards = [0]
+            print('Starting evaluation of the model')
+            state = env.reset()
+            total_loads.append(state[1])
+            for t_episode in range(NUM_TIME_STEPS):
+                next_state, reward, done = env.step(0)
+                rewards.append(reward)
+                inside_temperatures_1.append(env.buildings[0].inside_temperature)
+                inside_temperatures_2.append(env.buildings[1].inside_temperature)
+                base_loads_1.append(env.buildings[0].base_load)
+                base_loads_2.append(env.buildings[1].base_load)
+                ambient_temperatures.append(env.ambient_temperature)
+                total_loads.append(next_state[1])
+            eval_data = pd.DataFrame()
+            eval_data['Inside Temperatures 1'] = inside_temperatures_1
+            eval_data['Inside Temperatures 2'] = inside_temperatures_2
+            eval_data['Base Loads 1'] = base_loads_1
+            eval_data['Base Loads 2'] = base_loads_2
+            eval_data['Ambient Temperatures'] = ambient_temperatures
+            eval_data['Rewards'] = rewards
+            eval_data['Total Load'] = total_loads
+            with open(os.getcwd() + '/data/output/' + model_name + 'base_eval.pkl', 'wb') as f:
+                pkl.dump(eval_data, f)
+
             print('Finished evaluation on January.')
 
 if __name__ == '__main__':

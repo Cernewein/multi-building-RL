@@ -153,8 +153,6 @@ m.ModelSense = GRB.MINIMIZE
 m.setObjective(objective)
 m.optimize()
 
-opt_df = pd.DataFrame.from_dict(x_vars, orient='index', columns= ["variable_object"])
-
 cost=0
 power=0
 for t,varname in enumerate(x_vars.values()):
