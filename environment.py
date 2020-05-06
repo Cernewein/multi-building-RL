@@ -61,12 +61,13 @@ class System:
             total_load += load
             total_cost += cost
 
+
         return total_load, total_cost
 
     def reward(self, total_load, building_costs):
         penalty = np.maximum(0, total_load - L_MAX)
         penalty *= LOAD_PENALTY
-        print(penalty)
+
 
         return  - self.zeta * building_costs - (1-self.zeta) * penalty
 
@@ -152,7 +153,7 @@ class Building:
 
         # Heat pump power is adjusted so that the power is expressed in MW and also adjusted to the correct time slot size
         heat_pump_power = selected_action * NOMINAL_HEAT_PUMP_POWER / (1e6) * TIME_STEP_SIZE / 3600
-        total_load = (heat_pump_power + self.base_load)
+        total_load = (heat_pump_power + self.base_load * TIME_STEP_SIZE / 3600)
         total_cost = total_load*price + current_penalty
 
         self.time +=1
@@ -168,6 +169,7 @@ class Building:
 
         :return: Returns the resetted inside temperature, ambient temperature and sun power
         """
+        np.random.seed(self.seed)
         self.inside_temperature = 21
         self.random_day = random_day
         self.ambient_temperatures = ambient_temperatures
@@ -178,7 +180,7 @@ class Building:
         self.base_loads = pd.read_csv(
             '../multi-building-RL/data/environment/2014_DK2_scaled_loads.csv',
             header=0).iloc[random_day:random_day+NUM_HOURS+1,1]
-        np.random.seed(self.seed)
+
         self.base_loads += np.random.normal(loc=0.0, scale=0.075/1000, size=NUM_HOURS+1)
         self.base_load = self.base_loads[random_day]
         return self.base_load
