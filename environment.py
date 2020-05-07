@@ -9,7 +9,7 @@ import random
 
 
 class System:
-    def __init__(self, eval = False, num_buildings = 2, zeta = 0.5):
+    def __init__(self, eval = False, num_buildings = 2, zeta = ZETA):
         self.eval = eval
         # If we are in eval mode, select the month of january
         if self.eval:
@@ -34,12 +34,14 @@ class System:
         self.zeta = zeta
         self.done = False
         self.time = 0
+        self.total_load = sum(self.buildings[i].base_load for i in range(num_buildings))
 
     def step(self, action):
 
         price = PRICE_SET[int(action)]
 
         total_load,total_base_load, building_costs = self.get_loads_and_costs(price)
+        self.total_load = total_load
 
         self.ambient_temperature = self.ambient_temperatures[self.random_day + (self.time * TIME_STEP_SIZE) // 3600]
 
@@ -62,12 +64,12 @@ class System:
             total_load += load
             total_base_load += base_load
             total_cost += cost
+        print(total_load)
 
 
         return total_load,total_base_load, total_cost
 
     def reward(self, total_load, building_costs):
-        print(total_load*1000)
         penalty = np.maximum(0, total_load - L_MAX)
         penalty *= LOAD_PENALTY
 
@@ -117,7 +119,7 @@ class Building:
             '../multi-building-RL/data/environment/2014_DK2_scaled_loads.csv',header=0).iloc[random_day:random_day+NUM_HOURS+1,1]
         self.seed = seed
         np.random.seed(self.seed)
-        self.T_MIN = T_MIN + np.random.uniform(seed/2-0.5,seed/2+0.5)
+        self.T_MIN = T_MIN - seed*0.5
         self.base_loads += np.random.normal(loc=0.0, scale=0.075/1000, size=NUM_HOURS+1)
         self.base_load = self.base_loads[random_day]
         self.inside_temperature = 21
@@ -143,10 +145,13 @@ class Building:
         current_penalty = COMFORT_PENALTY * (np.maximum(0,self.T_MIN-self.inside_temperature))
         #expected_cost = (PRICE_SENSITIVITY * NOMINAL_HEAT_PUMP_POWER / (1e6) * price * TIME_STEP_SIZE / 3600)
 
-        if current_penalty> 0:
-            selected_action =  (PRICE_SET[-1] + 10 - price)/PRICE_SET[-1]
-        else:
-            selected_action = 0
+        #if current_penalty> 0:
+        #    selected_action =  (PRICE_SET[-1] + 10 - price)/PRICE_SET[-1]
+        #else:
+        #    selected_action = 0
+
+        expected_costs = self.compute_expected_costs(price)
+        selected_action = HEATING_SETTINGS[np.argmin(expected_costs)]
 
 
         delta = 1 / (R_IA * C_I) * (self.ambient_temperature - self.inside_temperature) + \
@@ -188,5 +193,15 @@ class Building:
         self.base_load = self.base_loads[random_day]
         return self.base_load
 
+    def compute_expected_costs(self,price):
+        costs = []
+        for heating_action in HEATING_SETTINGS:
+            expected_temperature_delta = 1 / (R_IA * C_I) * (self.ambient_temperature - self.inside_temperature) + \
+                self.heat_pump_power(NOMINAL_HEAT_PUMP_POWER*heating_action)/C_I + A_w*self.sun_power/C_I
+            expected_temperature = self.inside_temperature + expected_temperature_delta * TIME_STEP_SIZE
+            expected_heat_disutility = COMFORT_PENALTY * (np.maximum(0,self.T_MIN-expected_temperature))
+            expected_heating_cost = (PRICE_SENSITIVITY * heating_action * NOMINAL_HEAT_PUMP_POWER / (1e6) * price * TIME_STEP_SIZE / 3600)
+            costs.append(expected_heat_disutility + expected_heating_cost)
+        return costs
 
 

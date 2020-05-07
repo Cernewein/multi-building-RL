@@ -42,12 +42,11 @@ def run(ckpt,model_name,dynamic,soft, eval, model_type):
             base_loads_1 = [env.buildings[0].base_load]
             base_loads_2 = [env.buildings[1].base_load]
             ambient_temperatures = [env.ambient_temperature]
-            total_loads = []
+            total_loads = [env.total_load]
             actions = [0]
             rewards=[0]
             print('Starting evaluation of the model')
             state = env.reset()
-            total_loads.append(state[1])
             state = torch.tensor(state, dtype=torch.float).to(device)
             # Normalizing data using an online algo
             brain.normalizer.observe(state)
@@ -62,7 +61,7 @@ def run(ckpt,model_name,dynamic,soft, eval, model_type):
                 base_loads_1.append(env.buildings[0].base_load)
                 base_loads_2.append(env.buildings[1].base_load)
                 ambient_temperatures.append(env.ambient_temperature)
-                total_loads.append(next_state[1])
+                total_loads.append(env.total_load)
                 if not done:
                     next_state = torch.tensor(next_state, dtype=torch.float, device=device)
                     # normalize data using an online algo
@@ -93,11 +92,10 @@ def run(ckpt,model_name,dynamic,soft, eval, model_type):
             base_loads_1 = [env.buildings[0].base_load]
             base_loads_2 = [env.buildings[1].base_load]
             ambient_temperatures = [env.ambient_temperature]
-            total_loads = []
+            total_loads = [env.total_load]
             rewards = [0]
             print('Starting evaluation of the model')
             state = env.reset()
-            total_loads.append(state[1])
             for t_episode in range(NUM_TIME_STEPS):
                 next_state, reward, done = env.step(0)
                 rewards.append(reward)
@@ -106,7 +104,7 @@ def run(ckpt,model_name,dynamic,soft, eval, model_type):
                 base_loads_1.append(env.buildings[0].base_load)
                 base_loads_2.append(env.buildings[1].base_load)
                 ambient_temperatures.append(env.ambient_temperature)
-                total_loads.append(next_state[1])
+                total_loads.append(env.total_load)
             eval_data = pd.DataFrame()
             eval_data['Inside Temperatures 1'] = inside_temperatures_1
             eval_data['Inside Temperatures 2'] = inside_temperatures_2
