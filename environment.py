@@ -39,7 +39,7 @@ class System:
 
         price = PRICE_SET[int(action)]
 
-        total_load, building_costs = self.get_loads_and_costs(price)
+        total_load,total_base_load, building_costs = self.get_loads_and_costs(price)
 
         self.ambient_temperature = self.ambient_temperatures[self.random_day + (self.time * TIME_STEP_SIZE) // 3600]
 
@@ -50,24 +50,26 @@ class System:
             self.done = True
 
 
-        return [self.ambient_temperature, total_load, self.buildings[0].inside_temperature, self.buildings[1].inside_temperature,
+        return [self.ambient_temperature, total_base_load, self.buildings[0].inside_temperature, self.buildings[1].inside_temperature,
                 self.time % int(24 * 3600 // TIME_STEP_SIZE)], r, self.done  #
 
     def get_loads_and_costs(self, action):
         total_load = 0
         total_cost = 0
+        total_base_load = 0
         for building in self.buildings:
-            load, cost = building.step(action)
+            load, base_load,cost = building.step(action)
             total_load += load
+            total_base_load += base_load
             total_cost += cost
 
 
-        return total_load, total_cost
+        return total_load,total_base_load, total_cost
 
     def reward(self, total_load, building_costs):
+        print(total_load*1000)
         penalty = np.maximum(0, total_load - L_MAX)
         penalty *= LOAD_PENALTY
-
 
         return  - self.zeta * building_costs - (1-self.zeta) * penalty
 
@@ -115,6 +117,7 @@ class Building:
             '../multi-building-RL/data/environment/2014_DK2_scaled_loads.csv',header=0).iloc[random_day:random_day+NUM_HOURS+1,1]
         self.seed = seed
         np.random.seed(self.seed)
+        self.T_MIN = T_MIN + np.random.uniform(seed/2-0.5,seed/2+0.5)
         self.base_loads += np.random.normal(loc=0.0, scale=0.075/1000, size=NUM_HOURS+1)
         self.base_load = self.base_loads[random_day]
         self.inside_temperature = 21
@@ -137,11 +140,11 @@ class Building:
         :return: Returns the new state after a step, the reward for the action and the done state
         """
 
-        current_penalty = COMFORT_PENALTY * (np.maximum(0,T_MIN-self.inside_temperature))
-        expected_cost = (PRICE_SENSITIVITY * NOMINAL_HEAT_PUMP_POWER / (1e6) * price * TIME_STEP_SIZE / 3600)
+        current_penalty = COMFORT_PENALTY * (np.maximum(0,self.T_MIN-self.inside_temperature))
+        #expected_cost = (PRICE_SENSITIVITY * NOMINAL_HEAT_PUMP_POWER / (1e6) * price * TIME_STEP_SIZE / 3600)
 
-        if current_penalty -  expected_cost> 0:
-            selected_action = 1
+        if current_penalty> 0:
+            selected_action =  (PRICE_SET[-1] + 10 - price)/PRICE_SET[-1]
         else:
             selected_action = 0
 
@@ -161,7 +164,7 @@ class Building:
         self.ambient_temperature = self.ambient_temperatures[self.random_day + (self.time * TIME_STEP_SIZE)//3600]
         self.sun_power = self.sun_powers[self.random_day + (self.time * TIME_STEP_SIZE)//3600]
         self.base_load = self.base_loads[self.random_day + (self.time * TIME_STEP_SIZE) // 3600]
-        return total_load, total_cost
+        return total_load, self.base_load, total_cost
 
     def reset(self, random_day ,ambient_temperatures, sun_powers):
         """

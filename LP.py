@@ -3,6 +3,7 @@ import numpy as np
 import random
 import gurobipy as gp
 from gurobipy import GRB
+import pickle as pkl
 
 
 def heat_pump_power(phi_e, ambient_temperature):
@@ -29,8 +30,8 @@ zeta = 0.5
 L_MAX = 6.6/1000
 T = NUM_TIME_STEPS
 set_T = range(0,T-1)
-upper_bound_p = 2
-p_increment = 25
+upper_bound_p = 5
+p_increment = 10
 
 # Create models
 m = gp.Model('MIP')
@@ -225,11 +226,28 @@ m.ModelSense = GRB.MINIMIZE
 m.setObjective(objective)
 m.optimize()
 
-cost=0
-power=0
-for t,varname in enumerate(x_vars_1.values()):
-    cost+=m.getVarByName(varname.VarName).x*P[t]
-    power += m.getVarByName(varname.VarName).x * TIME_STEP_SIZE/3600 * 2000
+results = pd.DataFrame()
+chosen_prices = []
 
-print(cost*NOMINAL_HEAT_PUMP_POWER/1e6*TIME_STEP_SIZE/3600)
-print(power)
+for t,varname in enumerate(p_var.values()):
+    chosen_prices.append(p_increment*m.getVarByName(varname.VarName).x)
+
+total_load_1 = []
+total_load_2 = []
+total_load = []
+
+for t,varname in enumerate(x_vars_1.values()):
+    total_load_1.append(m.getVarByName(varname.VarName).x * NOMINAL_HEAT_PUMP_POWER/1e6 + base_loads_1[t])
+
+
+for t,varname in enumerate(x_vars_2.values()):
+    total_load_2.append(m.getVarByName(varname.VarName).x * NOMINAL_HEAT_PUMP_POWER/1e6 + base_loads_2[t])
+
+for t,v in enumerate(total_load_1):
+    total_load.append(total_load_1[t] + total_load_2[t])
+
+results['Prices'] = chosen_prices
+results['Total Load'] = total_load
+
+with open('data/output/Multi_LP_eval.pkl', 'wb') as f:
+    pkl.dump(results,f)
