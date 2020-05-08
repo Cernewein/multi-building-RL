@@ -64,7 +64,7 @@ class System:
             total_load += load
             total_base_load += base_load
             total_cost += cost
-        print(total_load)
+        #print(total_load)
 
 
         return total_load,total_base_load, total_cost
@@ -72,6 +72,7 @@ class System:
     def reward(self, total_load, building_costs):
         penalty = np.maximum(0, total_load - L_MAX)
         penalty *= LOAD_PENALTY
+        #print(penalty)
 
         return  - self.zeta * building_costs - (1-self.zeta) * penalty
 
@@ -145,13 +146,15 @@ class Building:
         current_penalty = COMFORT_PENALTY * (np.maximum(0,self.T_MIN-self.inside_temperature))
         #expected_cost = (PRICE_SENSITIVITY * NOMINAL_HEAT_PUMP_POWER / (1e6) * price * TIME_STEP_SIZE / 3600)
 
-        #if current_penalty> 0:
-        #    selected_action =  (PRICE_SET[-1] + 10 - price)/PRICE_SET[-1]
-        #else:
-        #    selected_action = 0
+        if current_penalty/COMFORT_PENALTY >= 1.5:
+            selected_action = -0.5*price/(PRICE_SET[-1]-10) + 1 + 5/(PRICE_SET[-1]-10)
+        elif current_penalty/COMFORT_PENALTY > 0:
+            selected_action =  (PRICE_SET[-1] - price)/(PRICE_SET[-1]-10)
+        else:
+            selected_action = 0
 
         expected_costs = self.compute_expected_costs(price)
-        selected_action = HEATING_SETTINGS[np.argmin(expected_costs)]
+        #selected_action = HEATING_SETTINGS[np.argmin(expected_costs)]
 
 
         delta = 1 / (R_IA * C_I) * (self.ambient_temperature - self.inside_temperature) + \
@@ -204,6 +207,8 @@ class Building:
             expected_heat_disutility = COMFORT_PENALTY * (np.maximum(0,self.T_MIN-expected_temperature))
 
             expected_heating_cost = (PRICE_SENSITIVITY * heating_action * NOMINAL_HEAT_PUMP_POWER / (1e6) * price * TIME_STEP_SIZE / 3600)
+            print(expected_heating_cost)
+
 
             costs.append(expected_heat_disutility + expected_heating_cost)
         return costs
