@@ -74,7 +74,10 @@ def train_dqn(ckpt,model_name,dynamic,soft):
                     'BATCH_SIZE':BATCH_SIZE,
                      'TIME_STEP_SIZE':TIME_STEP_SIZE,
                     'NUM_HOURS':NUM_HOURS,
-                    'COMFORT_PENALTY':COMFORT_PENALTY}
+                    'COMFORT_PENALTY':COMFORT_PENALTY,
+                    'LOAD_PENALTY':LOAD_PENALTY,
+                    'PRICE_SENSITIVITY':PRICE_SENSITIVITY,
+                    'ZETA':ZETA}
 
     scores.append(model_params)
     with open(os.getcwd() + '/data/output/' + model_name + '_dynamic_' + str(dynamic) + '_rewards_dqn.pkl', 'wb') as f:

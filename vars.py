@@ -39,5 +39,5 @@ A_w = 7.89 # Window surface area
 NOMINAL_HEAT_PUMP_POWER = 2000 # 2kW based on some quick loockup of purchaseable heat pumps
 PRICE_SENSITIVITY = 100
 L_MAX = 5 / 1000 # N kWh scales down to MWh
-LOAD_PENALTY = 10
+LOAD_PENALTY = 1000
 HEATING_SETTINGS = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]

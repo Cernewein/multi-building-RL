@@ -198,9 +198,13 @@ class Building:
         for heating_action in HEATING_SETTINGS:
             expected_temperature_delta = 1 / (R_IA * C_I) * (self.ambient_temperature - self.inside_temperature) + \
                 self.heat_pump_power(NOMINAL_HEAT_PUMP_POWER*heating_action)/C_I + A_w*self.sun_power/C_I
+
             expected_temperature = self.inside_temperature + expected_temperature_delta * TIME_STEP_SIZE
+
             expected_heat_disutility = COMFORT_PENALTY * (np.maximum(0,self.T_MIN-expected_temperature))
+
             expected_heating_cost = (PRICE_SENSITIVITY * heating_action * NOMINAL_HEAT_PUMP_POWER / (1e6) * price * TIME_STEP_SIZE / 3600)
+
             costs.append(expected_heat_disutility + expected_heating_cost)
         return costs
 
