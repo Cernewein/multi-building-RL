@@ -1,8 +1,9 @@
 import torch
 from vars import *
-from collections import namedtuple
+from collections import namedtuple, deque
 import random
 from environment import Building
+import numpy as np
 
 # Taken from
 # https://github.com/pytorch/tutorials/blob/master/intermediate_source/reinforcement_q_learning.py
@@ -67,36 +68,52 @@ class ReplayMemory(object):
     def __len__(self):
         return len(self.memory)
 
-class BasicController():
+class MultiAgentReplayBuffer:
 
-    def __init__(self, number_time_steps, dynamic, model_name):
-        self.number_time_steps = number_time_steps
-        self.building = Building(dynamic, eval=True)
-        self.temperatures = []
-        self.costs = []
-        self.action = 0
-        self.model_name = model_name
+    def __init__(self, num_agents, max_size):
+        self.max_size = max_size
+        self.num_agents = num_agents
+        self.buffer = deque(maxlen=max_size)
 
-    def control(self):
-        """
-        Represents a very basic control mechanism that is used as baseline for comparision. It heats until T=T_max
-        and then turns the heating off until T_min is reached
-        :param number_time_steps:
-        :return:
-        """
+    def push(self, state, action, reward, next_state, done):
+        experience = (state, action, np.array(reward), next_state, done)
+        self.buffer.append(experience)
 
-        for _ in range(self.number_time_steps):
-            if self.building.inside_temperature > T_MAX - 1 / TEMPERATURE_ROUNDING:
-                self.action = 0
-            elif self.building.inside_temperature < T_MIN + 1 / TEMPERATURE_ROUNDING:
-                self.action = 1
+    def sample(self, batch_size):
+        obs_batch = [[] for _ in range(self.num_agents)]  # [ [states of agent 1], ... ,[states of agent n] ]    ]
+        indiv_action_batch = [[] for _ in range(self.num_agents)]  # [ [actions of agent 1], ... , [actions of agent n]]
+        indiv_reward_batch = [[] for _ in range(self.num_agents)]
+        next_obs_batch = [[] for _ in range(self.num_agents)]
 
-            self.building.step(self.action)
-            self.temperatures.append(self.building.inside_temperature)
-            self.costs.append(self.action*NOMINAL_HEAT_PUMP_POWER*self.building.price/1e6*TIME_STEP_SIZE/3600)
+        global_state_batch = []
+        global_next_state_batch = []
+        global_actions_batch = []
+        done_batch = []
 
-        with open(os.getcwd() + '/data/output/' + self.model_name + '_costs_basic.pkl', 'wb') as f:
-            pkl.dump(self.costs, f)
+        batch = random.sample(self.buffer, batch_size)
 
-        with open(os.getcwd() + '/data/output/' + self.model_name + '_temperatures_basic.pkl', 'wb') as f:
-            pkl.dump(self.temperatures, f)
+
+        for experience in batch:
+            state, action, reward, next_state, done = experience
+
+            for i in range(self.num_agents):
+                obs_i = state[0][i].detach().numpy()
+                action_i = action[i]
+                reward_i = reward[i]
+                next_obs_i = next_state[0][i].detach().numpy()
+
+                obs_batch[i].append(obs_i)
+                indiv_action_batch[i].append(action_i)
+                indiv_reward_batch[i].append(reward_i)
+                next_obs_batch[i].append(next_obs_i)
+
+
+            global_state_batch.append(np.concatenate(state.detach().numpy()))
+            global_actions_batch.append(torch.cat(action))
+            global_next_state_batch.append(np.concatenate(next_state.detach().numpy()))
+            done_batch.append(done)
+
+        return obs_batch, indiv_action_batch, indiv_reward_batch, next_obs_batch, global_state_batch, global_actions_batch, global_next_state_batch, done_batch
+
+    def __len__(self):
+        return len(self.buffer)

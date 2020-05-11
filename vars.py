@@ -5,7 +5,7 @@ NUM_HOURS = 31*24
 NUM_TIME_STEPS = int(NUM_HOURS*3600//TIME_STEP_SIZE) # A total of 12 hours computed every second
 
 ##### RL Agent parameters
-NUM_EPISODES = 1000 # Number of episodes
+NUM_EPISODES = 2 # Number of episodes
 EPSILON = 1 # For epsilon-greedy approach
 EPS_DECAY = 0.99997
 LEARNING_RATE = 0.00025
@@ -13,7 +13,7 @@ LEARNING_RATE_ACTOR = 1e-4
 LEARNING_RATE_CRITIC = 1e-3
 GAMMA = 0.99
 TARGET_UPDATE = 10
-BATCH_SIZE = 32
+BATCH_SIZE = 2
 PRICE_SET = [10,20,30,40,50,60]
 N_ACTIONS = len(PRICE_SET)
 INPUT_DIMS = 5
@@ -23,8 +23,8 @@ FC_3_DIMS = FC_2_DIMS # If we don't want a third layer, set this to FC_2_DIMS
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 TAU = 0.001 # For soft update
 MEMORY_SIZE = 1000*31*24
-ZETA = 0.2
-
+scale_reward = 0.01
+EPISODES_BEFORE_TRAIN = NUM_EPISODES // 100
 
 ##### Environment parameters
 COMFORT_PENALTY = 5 # Penalty applied when going outside of "comfort" bounds
@@ -41,3 +41,5 @@ PRICE_SENSITIVITY = 200
 L_MAX = 5 / 1000 # N kWh scales down to MWh
 LOAD_PENALTY = 1000
 HEATING_SETTINGS = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+ZETA = 0.2
+MAX_PRICE = 60

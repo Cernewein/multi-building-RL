@@ -13,6 +13,7 @@ import torch
 import pandas as pd
 import numpy as np
 from train_dqn import train_dqn
+from train_maddpg import train_maddpg
 
 
 def parse_args():
@@ -22,14 +23,17 @@ def parse_args():
     parser.add_argument("--dynamic", default=False, type=lambda x: (str(x).lower() == 'true'))
     parser.add_argument("--soft", default=False,type=lambda x: (str(x).lower() == 'true'))
     parser.add_argument("--eval", default=False, type=lambda x: (str(x).lower() == 'true'))
-    parser.add_argument("--model_type", default='DDPG')
+    parser.add_argument("--model_type", default='MADDPG')
     return parser.parse_args()
 
 
 def run(ckpt,model_name,dynamic,soft, eval, model_type):
 
     if not eval:
-        train_dqn(ckpt, model_name, dynamic, soft)
+        if model_type != 'MADDPG':
+            train_dqn(ckpt, model_name, dynamic, soft)
+        else:
+            train_maddpg(ckpt, model_name)
 
     else:
         if ckpt:
