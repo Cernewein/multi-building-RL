@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-
+from misc import onehot_from_logits
 from agent import DDPGAgent
 from utils import MultiAgentReplayBuffer
 from vars import *
@@ -46,9 +46,12 @@ class MADDPG:
             for agent in self.agents:
                 next_obs_batch_i = torch.tensor(next_obs_batch_i, device=device, dtype=torch.float)
                 indiv_next_action = agent.actor_target.forward(next_obs_batch_i)
+
                 if self.discrete_actions:
-                    indiv_next_action = [agent.onehot_from_logits(indiv_next_action_j) for indiv_next_action_j in
+
+                    indiv_next_action = [onehot_from_logits(indiv_next_action_j) for indiv_next_action_j in
                                      indiv_next_action]
+
                     indiv_next_action = torch.stack(indiv_next_action)
                 next_global_actions.append(indiv_next_action)
             next_global_actions = torch.cat([next_actions_i for next_actions_i in next_global_actions], 1)

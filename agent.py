@@ -47,8 +47,8 @@ class DDPGAgent:
         self.critic_input_dim = int(np.sum([env.observation_space[agent] for agent in range(self.num_agents)]))
         self.actor_input_dim = self.obs_dim
 
-        self.critic = CentralizedCritic(self.critic_input_dim, self.action_dim * self.num_agents).to(self.device)
-        self.critic_target = CentralizedCritic(self.critic_input_dim, self.action_dim * self.num_agents).to(self.device)
+        self.critic = CentralizedCritic(self.critic_input_dim, int(np.sum([env.action_space[agent] for agent in range(self.num_agents)]))).to(self.device)
+        self.critic_target = CentralizedCritic(self.critic_input_dim, int(np.sum([env.action_space[agent] for agent in range(self.num_agents)]))).to(self.device)
         self.actor = Actor(self.actor_input_dim, self.action_dim, self.discrete).to(self.device)
         self.actor_target = Actor(self.actor_input_dim, self.action_dim, self.discrete).to(self.device)
 
@@ -68,11 +68,11 @@ class DDPGAgent:
 
             action = self.actor.forward(state)
             if self.discrete:
-                sample = random.random()
-                self.epsilon_threshold = self.epsilon * (
-                        self.eps_dec ** self.steps_done) if self.epsilon_threshold > self.eps_end else self.eps_end
+                #sample = random.random()
+                #self.epsilon_threshold = self.epsilon * (
+                #        self.eps_dec ** self.steps_done) if self.epsilon_threshold > self.eps_end else self.eps_end
 
-                if (sample > self.epsilon_threshold) and explore:
+                if  explore:
                     action = gumbel_softmax(action, hard=True)
                 else:
                     action = onehot_from_logits(action)
