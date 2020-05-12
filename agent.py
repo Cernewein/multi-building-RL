@@ -12,7 +12,7 @@ from model import CentralizedCritic, Actor
 
 class DDPGAgent:
 
-    def __init__(self, env, agent_id, actor_lr=1e-4, critic_lr=1e-3, gamma=0.99, tau=1e-2):
+    def __init__(self, env, agent_id, actor_lr=LEARNING_RATE_ACTOR, critic_lr=LEARNING_RATE_CRITIC, gamma=GAMMA, tau=TAU):
         self.env = env
         self.agent_id = agent_id
         self.actor_lr = actor_lr
@@ -51,7 +51,7 @@ class DDPGAgent:
             target_param.data.copy_(param.data)
 
         self.MSELoss = nn.MSELoss()
-        self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=critic_lr)
+        self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=critic_lr, weight_decay = 1e-2)
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=actor_lr)
 
     def get_action(self, state):
@@ -73,7 +73,7 @@ class DDPGAgent:
         state =  torch.tensor(state, dtype=torch.float, device=device)
         self.normalizer.observe(state)
         state = self.normalizer.normalize(state)
-        return state.numpy()
+        return state.cpu().numpy()
 
     def onehot_from_logits(self, logits, eps=0.0):
         # get best (according to current policy) actions in one-hot form
@@ -114,7 +114,7 @@ class DDPGAgent:
 
         critic_loss = self.MSELoss(curr_Q, estimated_Q.detach())
         critic_loss.backward()
-        torch.nn.utils.clip_grad_norm_(self.critic.parameters(), 0.5)
+        torch.nn.utils.clip_grad_norm_(self.critic.parameters(), 1)
         self.critic_optimizer.step()
 
         # update actor
@@ -130,13 +130,14 @@ class DDPGAgent:
         #curr_pol_out = self.actor.forward(indiv_obs_batch)
         #policy_loss += -(curr_pol_out ** 2).mean() * 1e-3
         policy_loss.backward()
-        torch.nn.utils.clip_grad_norm_(self.critic.parameters(), 0.5)
+        torch.nn.utils.clip_grad_norm_(self.critic.parameters(), 1)
         self.steps_done += 1
         self.actor_optimizer.step()
 
     def target_update(self):
         for target_param, param in zip(self.actor_target.parameters(), self.actor.parameters()):
-            target_param.data.copy_(param.data)
+            #target_param.data.copy_(param.data)
+            target_param.data.copy_(param.data * self.tau + target_param.data * (1.0 - self.tau))
 
         for target_param, param in zip(self.critic_target.parameters(), self.critic.parameters()):
             target_param.data.copy_(param.data * self.tau + target_param.data * (1.0 - self.tau))

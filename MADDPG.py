@@ -18,6 +18,7 @@ class MADDPG:
         self.model_name = model_name
         self.episode_done = 0
         self.episodes_before_train = EPISODES_BEFORE_TRAIN
+        self.steps_done = 0
 
     def get_actions(self, states):
         actions = []
@@ -42,7 +43,7 @@ class MADDPG:
 
             next_global_actions = []
             for agent in self.agents:
-                next_obs_batch_i = torch.FloatTensor(next_obs_batch_i)
+                next_obs_batch_i = torch.tensor(next_obs_batch_i, device=device, dtype=torch.float)
                 indiv_next_action = agent.actor_target.forward(next_obs_batch_i)
                 #indiv_next_action = [agent.onehot_from_logits(indiv_next_action_j) for indiv_next_action_j in
                                      #indiv_next_action]
@@ -53,7 +54,8 @@ class MADDPG:
 
             self.agents[i].update(indiv_reward_batch_i, obs_batch_i, global_state_batch, global_actions_batch,
                                   global_next_state_batch, next_global_actions)
-            self.agents[i].target_update()
+            if self.steps_done % 20 == 0:
+                self.agents[i].target_update()
 
     def normalize_states(self, states):
         normalized_states = []
@@ -88,7 +90,14 @@ class MADDPG:
 
                     if len(self.replay_buffer) > batch_size:
                         self.update(batch_size)
+                self.steps_done += 1
             self.episode_done += 1
+
+            with open(os.getcwd() + '/data/output/' + self.model_name + '_rewards.txt', 'a') as f:
+                f.write('Episode {}, Reward {} \n'.format(self.episode_done, episode_reward))
+
+            if self.episode_done % 100 == 0:
+                torch.save(self, os.getcwd() + '/data/output/' + self.model_name + '_intermediate_model.pt')
 
         model_params = {'NUM_EPISODES': NUM_EPISODES,
                         'EPSILON': EPSILON,

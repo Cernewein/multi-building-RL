@@ -15,4 +15,4 @@ def train_maddpg(ckpt,model_name):
     ma_controller = MADDPG(environment, MEMORY_SIZE, model_name)
     ma_controller.run(NUM_EPISODES,NUM_TIME_STEPS,BATCH_SIZE)
 
-    torch.save(ma_controller, os.getcwd() + model_name + 'model.pt')
+    torch.save(ma_controller, os.getcwd() + '/data/output/' + model_name + 'model.pt')

@@ -97,10 +97,10 @@ class MultiAgentReplayBuffer:
             state, action, reward, next_state, done = experience
 
             for i in range(self.num_agents):
-                obs_i = state[0][i].detach().numpy()
+                obs_i = state[0][i].detach().cpu().numpy()
                 action_i = action[i]
                 reward_i = reward[i]
-                next_obs_i = next_state[0][i].detach().numpy()
+                next_obs_i = next_state[0][i].detach().cpu().numpy()
 
                 obs_batch[i].append(obs_i)
                 indiv_action_batch[i].append(action_i)
@@ -108,9 +108,9 @@ class MultiAgentReplayBuffer:
                 next_obs_batch[i].append(next_obs_i)
 
 
-            global_state_batch.append(np.concatenate(state.detach().numpy()))
+            global_state_batch.append(np.concatenate(state.detach().cpu().numpy()))
             global_actions_batch.append(torch.cat(action))
-            global_next_state_batch.append(np.concatenate(next_state.detach().numpy()))
+            global_next_state_batch.append(np.concatenate(next_state.detach().cpu().numpy()))
             done_batch.append(done)
 
         return obs_batch, indiv_action_batch, indiv_reward_batch, next_obs_batch, global_state_batch, global_actions_batch, global_next_state_batch, done_batch

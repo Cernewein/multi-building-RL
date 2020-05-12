@@ -5,15 +5,15 @@ NUM_HOURS = 31*24
 NUM_TIME_STEPS = int(NUM_HOURS*3600//TIME_STEP_SIZE) # A total of 12 hours computed every second
 
 ##### RL Agent parameters
-NUM_EPISODES = 2 # Number of episodes
+NUM_EPISODES = 1000 # Number of episodes
 EPSILON = 1 # For epsilon-greedy approach
-EPS_DECAY = 0.99997
+EPS_DECAY = 0.9997
 LEARNING_RATE = 0.00025
-LEARNING_RATE_ACTOR = 1e-4
+LEARNING_RATE_ACTOR = 5e-4
 LEARNING_RATE_CRITIC = 1e-3
 GAMMA = 0.99
 TARGET_UPDATE = 10
-BATCH_SIZE = 2
+BATCH_SIZE = 256
 PRICE_SET = [10,20,30,40,50,60]
 N_ACTIONS = len(PRICE_SET)
 INPUT_DIMS = 5
@@ -24,7 +24,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 TAU = 0.001 # For soft update
 MEMORY_SIZE = 1000*31*24
 scale_reward = 0.01
-EPISODES_BEFORE_TRAIN = NUM_EPISODES // 100
+EPISODES_BEFORE_TRAIN = 100
 
 ##### Environment parameters
 COMFORT_PENALTY = 5 # Penalty applied when going outside of "comfort" bounds
