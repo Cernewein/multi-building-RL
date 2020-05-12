@@ -10,20 +10,21 @@ import pickle as pkl
 
 class MADDPG:
 
-    def __init__(self, env, buffer_maxlen, model_name):
+    def __init__(self, env, buffer_maxlen, model_name, discrete = False):
         self.env = env
         self.num_agents = env.n_agents
         self.replay_buffer = MultiAgentReplayBuffer(self.num_agents, buffer_maxlen)
-        self.agents = [DDPGAgent(self.env, i) for i in range(self.num_agents)]
+        self.agents = [DDPGAgent(self.env, i, discrete) for i in range(self.num_agents)]
         self.model_name = model_name
         self.episode_done = 0
         self.episodes_before_train = EPISODES_BEFORE_TRAIN
         self.steps_done = 0
+        self.discrete_actions = discrete
 
-    def get_actions(self, states):
+    def get_actions(self, states, explore=False):
         actions = []
         for i in range(self.num_agents):
-            action = self.agents[i].get_action(states[0][i])
+            action = self.agents[i].get_action(states[0][i], explore)
             actions.append(action)
         return actions
 
@@ -45,9 +46,10 @@ class MADDPG:
             for agent in self.agents:
                 next_obs_batch_i = torch.tensor(next_obs_batch_i, device=device, dtype=torch.float)
                 indiv_next_action = agent.actor_target.forward(next_obs_batch_i)
-                #indiv_next_action = [agent.onehot_from_logits(indiv_next_action_j) for indiv_next_action_j in
-                                     #indiv_next_action]
-                #indiv_next_action = torch.stack(indiv_next_action)
+                if self.discrete_actions:
+                    indiv_next_action = [agent.onehot_from_logits(indiv_next_action_j) for indiv_next_action_j in
+                                     indiv_next_action]
+                    indiv_next_action = torch.stack(indiv_next_action)
                 next_global_actions.append(indiv_next_action)
             next_global_actions = torch.cat([next_actions_i for next_actions_i in next_global_actions], 1)
 
@@ -88,7 +90,7 @@ class MADDPG:
             states = torch.tensor(states, dtype=torch.float, device=device).unsqueeze(0)
             episode_reward = 0
             for step in range(max_steps):
-                actions = self.get_actions(states)
+                actions = self.get_actions(states, explore=True)
                 next_states, rewards, dones = self.env.step(actions)
                 next_states = self.normalize_states(next_states)
                 next_states = torch.tensor(next_states, dtype=torch.float, device=device).unsqueeze(0)

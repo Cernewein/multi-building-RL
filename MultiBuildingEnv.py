@@ -8,11 +8,16 @@ from vars import *
 import random
 
 class env:
-    def __init__(self, eval = False, num_buildings = 2):
+    def __init__(self, eval = False, num_buildings = 2, discrete = False):
         self.observation_space = np.array([5,5,5])# Observation space size of aggregator, building 1 and building 2
-        self.action_space = np.array([1,1,1]) # Number of actions one agent can do
+        self.discrete = discrete
+        if self.discrete:
+            self.action_space = np.array([len(PRICE_SET), len(HEATING_SETTINGS), len(HEATING_SETTINGS)])  # Number of actions one agent can do
+        else:
+            self.action_space = np.array([1,1,1]) # Number of actions one agent can do
         self.n_agents = 3
         self.eval = eval
+
         # If we are in eval mode, select the month of january
         if self.eval:
             self.random_day = 0  # First day of the year
@@ -40,7 +45,11 @@ class env:
 
     def step(self, actions):
         # Actions are received as an array, [aggregator action, building action 1, building action 2]
-        chosen_price = actions[0].detach().item()*MAX_PRICE + 10 # Minimum price is 10, can go up to 10 + MAX_PRICE
+        if self.discrete:
+            price_index = np.argmax(actions[0].detach().cpu().numpy())
+            chosen_price = PRICE_SET[price_index]
+        else:
+            chosen_price = actions[0].detach().item()*MAX_PRICE + 10 # Minimum price is 10, can go up to 10 + MAX_PRICE
 
         building_costs = []
         building_loads = []
@@ -48,7 +57,12 @@ class env:
         building_dones = []
 
         for b,building in enumerate(self.buildings):
-            new_state, cost, load, done = building.step(actions[b].detach().item(), chosen_price)
+            if self.discrete:
+                heating_index = np.argmax(actions[b].detach().cpu().numpy())
+                heating_action = HEATING_SETTINGS[heating_index]
+            else:
+                heating_action = actions[b].detach().item()
+            new_state, cost, load, done = building.step(heating_action, chosen_price)
             building_costs.append(cost)
             building_loads.append(load)
             building_new_states.append(new_state)

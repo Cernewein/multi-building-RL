@@ -30,7 +30,7 @@ class CentralizedCritic(nn.Module):
 
 class Actor(nn.Module):
 
-    def __init__(self, obs_dim, action_dim):
+    def __init__(self, obs_dim, action_dim, discrete):
         super(Actor, self).__init__()
 
         self.obs_dim = obs_dim
@@ -40,9 +40,16 @@ class Actor(nn.Module):
         self.linear2 = nn.Linear(512, 256)
         self.linear3 = nn.Linear(256, self.action_dim)
 
+        if discrete: # logits for discrete action
+            self.out = lambda x: x
+        else:
+            # initialize small to prevent saturation
+            self.linear3.weight.data.uniform_(-3e-3, 3e-3)
+            self.out = F.sigmoid
+
     def forward(self, obs):
         x = F.relu(self.linear1(obs))
         x = F.relu(self.linear2(x))
-        x = torch.sigmoid(self.linear3(x))
+        x = self.out(self.linear3(x))
 
         return x

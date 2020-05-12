@@ -7,13 +7,13 @@ from utils import Normalizer
 from vars import *
 import random
 from randomProcess import OUNoise
-
+from misc import gumbel_softmax, onehot_from_logits
 from model import CentralizedCritic, Actor
 
 
 class DDPGAgent:
 
-    def __init__(self, env, agent_id, actor_lr=LEARNING_RATE_ACTOR, critic_lr=LEARNING_RATE_CRITIC, gamma=GAMMA, tau=TAU, greedy = False):
+    def __init__(self, env, agent_id, actor_lr=LEARNING_RATE_ACTOR, critic_lr=LEARNING_RATE_CRITIC, gamma=GAMMA, tau=TAU, greedy = False, discrete = False):
         self.env = env
         self.agent_id = agent_id
         self.actor_lr = actor_lr
@@ -21,6 +21,7 @@ class DDPGAgent:
         self.gamma = gamma
         self.tau = tau
         self.steps_done = 0
+        self.discrete = discrete
 
         self.eps_end = 0.1
         self.epsilon = EPSILON
@@ -37,7 +38,10 @@ class DDPGAgent:
         self.action_dim = self.env.action_space[agent_id]
         self.num_agents = self.env.n_agents
 
-        self.greedy = greedy
+        if self.discrete:
+            self.greedy = True
+        else:
+            self.greedy = greedy
         self.exploration = OUNoise(self.action_dim)
 
         self.critic_input_dim = int(np.sum([env.observation_space[agent] for agent in range(self.num_agents)]))
@@ -45,8 +49,8 @@ class DDPGAgent:
 
         self.critic = CentralizedCritic(self.critic_input_dim, self.action_dim * self.num_agents).to(self.device)
         self.critic_target = CentralizedCritic(self.critic_input_dim, self.action_dim * self.num_agents).to(self.device)
-        self.actor = Actor(self.actor_input_dim, self.action_dim).to(self.device)
-        self.actor_target = Actor(self.actor_input_dim, self.action_dim).to(self.device)
+        self.actor = Actor(self.actor_input_dim, self.action_dim, self.discrete).to(self.device)
+        self.actor_target = Actor(self.actor_input_dim, self.action_dim, self.discrete).to(self.device)
 
         for target_param, param in zip(self.critic_target.parameters(), self.critic.parameters()):
             target_param.data.copy_(param.data)
@@ -58,25 +62,34 @@ class DDPGAgent:
         self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=critic_lr, weight_decay = 1e-2)
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=actor_lr)
 
-    def get_action(self, state):
+    def get_action(self, state, explore = False):
         #state = autograd.Variable(torch.from_numpy(state).float().squeeze(0)).to(self.device)
         with torch.no_grad():
-            action = self.actor.forward(state)
 
-            if self.greedy:
+            action = self.actor.forward(state)
+            if self.discrete:
                 sample = random.random()
                 self.epsilon_threshold = self.epsilon * (
                         self.eps_dec ** self.steps_done) if self.epsilon_threshold > self.eps_end else self.eps_end
 
-                if sample > self.epsilon_threshold:
-                    return action
+                if (sample > self.epsilon_threshold) and explore:
+                    action = gumbel_softmax(action, hard=True)
                 else:
-                    return torch.tensor([random.random()], dtype=torch.float).to(device)
-            else:
-                action += torch.autograd.Variable(torch.Tensor(self.exploration.noise()),
-                                   requires_grad=False)
-                action = action.clamp(0, 1)
-                return action
+                    action = onehot_from_logits(action)
+
+            elif explore: # If the action space is continuous
+                if self.greedy:
+                    sample = random.random()
+                    self.epsilon_threshold = self.epsilon * (
+                            self.eps_dec ** self.steps_done) if self.epsilon_threshold > self.eps_end else self.eps_end
+
+                    if sample <= self.epsilon_threshold:
+                        action = torch.tensor([random.random()], dtype=torch.float).to(device)
+                else:
+                    action += torch.autograd.Variable(torch.Tensor(self.exploration.noise()),
+                                       requires_grad=False).to(device)
+                    action = action.clamp(0, 1)
+            return action
         #action = self.onehot_from_logits(action)
 
     def reset_noise(self):
@@ -90,18 +103,6 @@ class DDPGAgent:
         self.normalizer.observe(state)
         state = self.normalizer.normalize(state)
         return state.cpu().numpy()
-
-    def onehot_from_logits(self, logits, eps=0.0):
-        # get best (according to current policy) actions in one-hot form
-        argmax_acs = (logits == logits.max(0, keepdim=True)[0]).float()
-        if eps == 0.0:
-            return argmax_acs
-        # get random actions in one-hot form
-        rand_acs = Variable(torch.eye(logits.shape[1])[[np.random.choice(
-            range(logits.shape[1]), size=logits.shape[0])]], requires_grad=False)
-        # chooses between best and random actions using epsilon greedy
-        return torch.stack([argmax_acs[i] if r > eps else rand_acs[i] for i, r in
-                            enumerate(torch.rand(logits.shape[0]))])
 
     def update(self, indiv_reward_batch, indiv_obs_batch, global_state_batch, global_actions_batch,
                global_next_state_batch, next_global_actions):
@@ -130,23 +131,24 @@ class DDPGAgent:
 
         critic_loss = self.MSELoss(curr_Q, estimated_Q.detach())
         critic_loss.backward()
-        torch.nn.utils.clip_grad_norm_(self.critic.parameters(), 1)
+        torch.nn.utils.clip_grad_norm_(self.critic.parameters(), 0.5)
         self.critic_optimizer.step()
 
         # update actor
         self.actor_optimizer.zero_grad()
 
-        indiv_action = self.actor.forward(indiv_obs_batch)
-        ac = global_actions_batch.clone()
-        ac[:, self.agent_id] = indiv_action[0]
-        whole_action = ac
+        #indiv_action = self.actor.forward(indiv_obs_batch)
+        #ac = global_actions_batch.clone()
+        #ac[:, self.agent_id] = indiv_action[0]
+        #whole_action = ac
 
-        policy_loss = -self.critic.forward(global_state_batch, whole_action).mean()
+        #policy_loss = -self.critic.forward(global_state_batch, whole_action).mean()
+        policy_loss = -self.critic.forward(global_state_batch, global_actions_batch).mean()
         # In original paper only sampled policy gradient is used for updating the policy
-        #curr_pol_out = self.actor.forward(indiv_obs_batch)
-        #policy_loss += -(curr_pol_out ** 2).mean() * 1e-3
+        curr_pol_out = self.actor.forward(indiv_obs_batch)
+        policy_loss += -(curr_pol_out ** 2).mean() * 1e-3
         policy_loss.backward()
-        torch.nn.utils.clip_grad_norm_(self.critic.parameters(), 1)
+        torch.nn.utils.clip_grad_norm_(self.critic.parameters(), 0.5)
         self.steps_done += 1
         self.actor_optimizer.step()
 
