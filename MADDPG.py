@@ -63,9 +63,26 @@ class MADDPG:
             normalized_states.append(self.agents[i].normalize(states[i]))
         return np.array(normalized_states)
 
+    def scale_noise(self, scale):
+        """
+        Scale noise for each agent
+        Inputs:
+            scale (float): scale of noise
+        """
+        for a in self.agents:
+            a.scale_noise(scale)
+
+    def reset_noise(self):
+        for a in self.agents:
+            a.reset_noise()
+
     def run(self, max_episode, max_steps, batch_size):
         episode_rewards = []
         for episode in range(max_episode):
+            explr_pct_remaining = max(0, n_exploration_eps - episode) / n_exploration_eps
+            self.scale_noise(
+                final_noise_scale + (init_noise_scale - final_noise_scale) * explr_pct_remaining)
+            self.reset_noise()
             states = self.env.reset()
             states = self.normalize_states(states)
             states = torch.tensor(states, dtype=torch.float, device=device).unsqueeze(0)

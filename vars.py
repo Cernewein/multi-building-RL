@@ -25,6 +25,10 @@ TAU = 0.001 # For soft update
 MEMORY_SIZE = 1000*31*24
 scale_reward = 0.01
 EPISODES_BEFORE_TRAIN = 100
+n_exploration_eps = NUM_EPISODES
+init_noise_scale = 0.3
+final_noise_scale = 0
+
 
 ##### Environment parameters
 COMFORT_PENALTY = 5 # Penalty applied when going outside of "comfort" bounds

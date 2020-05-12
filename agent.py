@@ -6,13 +6,14 @@ import numpy as np
 from utils import Normalizer
 from vars import *
 import random
+from randomProcess import OUNoise
 
 from model import CentralizedCritic, Actor
 
 
 class DDPGAgent:
 
-    def __init__(self, env, agent_id, actor_lr=LEARNING_RATE_ACTOR, critic_lr=LEARNING_RATE_CRITIC, gamma=GAMMA, tau=TAU):
+    def __init__(self, env, agent_id, actor_lr=LEARNING_RATE_ACTOR, critic_lr=LEARNING_RATE_CRITIC, gamma=GAMMA, tau=TAU, greedy = False):
         self.env = env
         self.agent_id = agent_id
         self.actor_lr = actor_lr
@@ -20,11 +21,11 @@ class DDPGAgent:
         self.gamma = gamma
         self.tau = tau
         self.steps_done = 0
+
         self.eps_end = 0.1
         self.epsilon = EPSILON
         self.eps_dec = EPS_DECAY
         self.epsilon_threshold = EPSILON
-
 
         self.device = "cpu"
         self.use_cuda = torch.cuda.is_available()
@@ -35,6 +36,9 @@ class DDPGAgent:
         self.normalizer = Normalizer(self.obs_dim)
         self.action_dim = self.env.action_space[agent_id]
         self.num_agents = self.env.n_agents
+
+        self.greedy = greedy
+        self.exploration = OUNoise(self.action_dim)
 
         self.critic_input_dim = int(np.sum([env.observation_space[agent] for agent in range(self.num_agents)]))
         self.actor_input_dim = self.obs_dim
@@ -58,16 +62,28 @@ class DDPGAgent:
         #state = autograd.Variable(torch.from_numpy(state).float().squeeze(0)).to(self.device)
         with torch.no_grad():
             action = self.actor.forward(state)
-            sample = random.random()
-            self.epsilon_threshold = self.epsilon * (
-                    self.eps_dec ** self.steps_done) if self.epsilon_threshold > self.eps_end else self.eps_end
 
-            if sample > self.epsilon_threshold:
-                return action
+            if self.greedy:
+                sample = random.random()
+                self.epsilon_threshold = self.epsilon * (
+                        self.eps_dec ** self.steps_done) if self.epsilon_threshold > self.eps_end else self.eps_end
+
+                if sample > self.epsilon_threshold:
+                    return action
+                else:
+                    return torch.tensor([random.random()], dtype=torch.float).to(device)
             else:
-                return torch.tensor([random.random()], dtype=torch.float).to(device)
+                action += torch.autograd.Variable(torch.Tensor(self.exploration.noise()),
+                                   requires_grad=False)
+                action = action.clamp(0, 1)
+                return action
         #action = self.onehot_from_logits(action)
 
+    def reset_noise(self):
+        self.exploration.reset()
+
+    def scale_noise(self, scale):
+        self.exploration.scale = scale
 
     def normalize(self, state):
         state =  torch.tensor(state, dtype=torch.float, device=device)
