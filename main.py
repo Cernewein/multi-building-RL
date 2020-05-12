@@ -34,7 +34,7 @@ def run(ckpt,model_name,dynamic,soft, eval, model_type, discrete):
         if model_type != 'MADDPG':
             train_dqn(ckpt, model_name, dynamic, soft)
         else:
-            train_maddpg(ckpt, model_name, discrete)
+            train_maddpg(ckpt, model_name, discrete = discrete)
 
     else:
         if ckpt:

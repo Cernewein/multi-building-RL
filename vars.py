@@ -13,7 +13,7 @@ LEARNING_RATE_ACTOR = 5e-4
 LEARNING_RATE_CRITIC = 1e-3
 GAMMA = 0.99
 TARGET_UPDATE = 10
-BATCH_SIZE = 256
+BATCH_SIZE = 1024
 PRICE_SET = [10,20,30,40,50,60]
 N_ACTIONS = len(PRICE_SET)
 INPUT_DIMS = 5
@@ -26,7 +26,7 @@ MEMORY_SIZE = 1000*31*24
 scale_reward = 0.01
 EPISODES_BEFORE_TRAIN = 100
 n_exploration_eps = NUM_EPISODES
-init_noise_scale = 0.3
+init_noise_scale = 0
 final_noise_scale = 0
 
 

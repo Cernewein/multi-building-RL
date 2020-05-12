@@ -10,16 +10,18 @@ import pickle as pkl
 
 class MADDPG:
 
-    def __init__(self, env, buffer_maxlen, model_name, discrete = False):
+    def __init__(self, env, buffer_maxlen, model_name, discrete = False, greedy = False):
         self.env = env
         self.num_agents = env.n_agents
         self.replay_buffer = MultiAgentReplayBuffer(self.num_agents, buffer_maxlen)
-        self.agents = [DDPGAgent(self.env, i, discrete) for i in range(self.num_agents)]
+        self.agents = [DDPGAgent(self.env, i, greedy = greedy, discrete=discrete) for i in range(self.num_agents)]
         self.model_name = model_name
         self.episode_done = 0
         self.episodes_before_train = EPISODES_BEFORE_TRAIN
         self.steps_done = 0
         self.discrete_actions = discrete
+        self.greedy = greedy
+
 
     def get_actions(self, states, explore=False):
         actions = []
@@ -59,7 +61,7 @@ class MADDPG:
 
             self.agents[i].update(indiv_reward_batch_i, obs_batch_i, global_state_batch, global_actions_batch,
                                   global_next_state_batch, next_global_actions)
-            if self.steps_done % 20 == 0:
+            if self.steps_done % TARGET_UPDATE == 0:
                 self.agents[i].target_update()
 
     def normalize_states(self, states):
