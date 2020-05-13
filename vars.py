@@ -45,5 +45,5 @@ PRICE_SENSITIVITY = 200
 L_MAX = 5 / 1000 # N kWh scales down to MWh
 LOAD_PENALTY = 1000
 HEATING_SETTINGS = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
-ZETA = 0.2
+ZETA = 0.5
 MAX_PRICE = 60

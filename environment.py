@@ -146,14 +146,15 @@ class Building:
         current_penalty = COMFORT_PENALTY * (np.maximum(0,self.T_MIN-self.inside_temperature))
         #expected_cost = (PRICE_SENSITIVITY * NOMINAL_HEAT_PUMP_POWER / (1e6) * price * TIME_STEP_SIZE / 3600)
 
-        if current_penalty/COMFORT_PENALTY >= 1.5:
-            selected_action = -0.5*price/(PRICE_SET[-1]-10) + 1 + 5/(PRICE_SET[-1]-10)
+        if current_penalty/COMFORT_PENALTY >= 1:
+            #selected_action = -0.5*price/(PRICE_SET[-1]-10) + 1 + 5/(PRICE_SET[-1]-10)
+            selected_action = (PRICE_SET[-1] - COMFORT_PENALTY*price/current_penalty) / (PRICE_SET[-1] - 10)
         elif current_penalty/COMFORT_PENALTY > 0:
             selected_action =  (PRICE_SET[-1] - price)/(PRICE_SET[-1]-10)
         else:
             selected_action = 0
 
-        expected_costs = self.compute_expected_costs(price)
+        #expected_costs = self.compute_expected_costs(price)
         #selected_action = HEATING_SETTINGS[np.argmin(expected_costs)]
 
 
