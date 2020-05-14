@@ -7,6 +7,7 @@ import time
 from vars import *
 import random
 import torch
+from DDPG import *
 
 
 class System:
@@ -128,9 +129,9 @@ class Building:
         self.RL_building = RL_building
         if RL_building:
             if seed == 0:
-                self.brain = torch.load('data/environment/heating_19_5.pt',map_location=torch.device('cpu'))
+                self.brain = torch.load('data/environment/heating-RL-agentDDPG-1h-19.5.pt',map_location=torch.device('cpu'))
             else:
-                self.brain = torch.load('data/environment/heating_19.pt',map_location=torch.device('cpu'))
+                self.brain = torch.load('data/environment/heating-RL-agentDDPG-1h-19.pt',map_location=torch.device('cpu'))
         self.base_loads += np.random.normal(loc=0.0, scale=0.075/1000, size=NUM_HOURS+1)
         self.base_load = self.base_loads[random_day]
         self.inside_temperature = 21
@@ -160,7 +161,7 @@ class Building:
         if self.RL_building:
             state = torch.tensor([self.inside_temperature,self.ambient_temperature,self.sun_power,price], dtype=torch.float)
             state = self.brain.normalizer.normalize(state).unsqueeze(0)
-            selected_action = brain.select_action(state).type(torch.FloatTensor).item()
+            selected_action = self.brain.select_action(state).type(torch.FloatTensor).item()
         else:
             #if current_penalty/COMFORT_PENALTY >= 1:
                 #selected_action = -0.5*price/(PRICE_SET[-1]-10) + 1 + 5/(PRICE_SET[-1]-10)

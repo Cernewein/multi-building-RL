@@ -2,7 +2,7 @@ import torch
 from vars import *
 from collections import namedtuple
 import random
-from environment import Building
+#from environment import Building
 
 # Taken from
 # https://github.com/pytorch/tutorials/blob/master/intermediate_source/reinforcement_q_learning.py
@@ -67,36 +67,25 @@ class ReplayMemory(object):
     def __len__(self):
         return len(self.memory)
 
-class BasicController():
+class OUNoise:
+    """Ornstein-Uhlenbeck process.
+    Taken from https://github.com/udacity/deep-reinforcement-learning/blob/master/ddpg-pendulum/ddpg_agent.py"""
 
-    def __init__(self, number_time_steps, dynamic, model_name):
-        self.number_time_steps = number_time_steps
-        self.building = Building(dynamic, eval=True)
-        self.temperatures = []
-        self.costs = []
-        self.action = 0
-        self.model_name = model_name
+    def __init__(self, size, seed, mu=0., theta=0.15, sigma=0.2):
+        """Initialize parameters and noise process."""
+        self.mu = mu * np.ones(size)
+        self.theta = theta
+        self.sigma = sigma
+        self.seed = random.seed(seed)
+        self.reset()
 
-    def control(self):
-        """
-        Represents a very basic control mechanism that is used as baseline for comparision. It heats until T=T_max
-        and then turns the heating off until T_min is reached
-        :param number_time_steps:
-        :return:
-        """
+    def reset(self):
+        """Reset the internal state (= noise) to mean (mu)."""
+        self.state = copy.copy(self.mu)
 
-        for _ in range(self.number_time_steps):
-            if self.building.inside_temperature > T_MAX - 1 / TEMPERATURE_ROUNDING:
-                self.action = 0
-            elif self.building.inside_temperature < T_MIN + 1 / TEMPERATURE_ROUNDING:
-                self.action = 1
-
-            self.building.step(self.action)
-            self.temperatures.append(self.building.inside_temperature)
-            self.costs.append(self.action*NOMINAL_HEAT_PUMP_POWER*self.building.price/1e6*TIME_STEP_SIZE/3600)
-
-        with open(os.getcwd() + '/data/output/' + self.model_name + '_costs_basic.pkl', 'wb') as f:
-            pkl.dump(self.costs, f)
-
-        with open(os.getcwd() + '/data/output/' + self.model_name + '_temperatures_basic.pkl', 'wb') as f:
-            pkl.dump(self.temperatures, f)
+    def sample(self):
+        """Update internal state and return it as a noise sample."""
+        x = self.state
+        dx = self.theta * (self.mu - x) + self.sigma * np.array([random.random() for i in range(len(x))])
+        self.state = x + dx
+        return self.state

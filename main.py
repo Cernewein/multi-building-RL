@@ -23,13 +23,14 @@ def parse_args():
     parser.add_argument("--soft", default=False,type=lambda x: (str(x).lower() == 'true'))
     parser.add_argument("--eval", default=False, type=lambda x: (str(x).lower() == 'true'))
     parser.add_argument("--model_type", default='DDPG')
+    parser.add_argument("--RL", default=False, type=lambda x: (str(x).lower() == 'true'))
     return parser.parse_args()
 
 
-def run(ckpt,model_name,dynamic,soft, eval, model_type):
+def run(ckpt,model_name,dynamic,soft, eval, model_type, RL):
 
     if not eval:
-        train_dqn(ckpt, model_name, dynamic, soft)
+        train_dqn(ckpt, model_name, dynamic, soft, RL)
 
     else:
         if ckpt:
