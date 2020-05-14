@@ -6,10 +6,11 @@ import pickle
 import time
 from vars import *
 import random
+import torch
 
 
 class System:
-    def __init__(self, eval = False, num_buildings = 2, zeta = ZETA):
+    def __init__(self, eval = False, num_buildings = 2, zeta = ZETA, RL_building = True):
         self.eval = eval
         # If we are in eval mode, select the month of january
         if self.eval:
@@ -27,9 +28,12 @@ class System:
             '../heating-RL-agent/data/environment/ninja_weather_55.6838_12.5354_uncorrected.csv',
             header=3).iloc[self.random_day:self.random_day+NUM_HOURS+1,3]
 
-
+        if eval==True:
+            self.RL_building = False
+        else:
+            self.RL_building = RL_building
         self.buildings = [Building(random_day = self.random_day,ambient_temperatures = self.ambient_temperatures,
-                                   sun_powers = self.sun_powers, name = 'Building_{}'.format(b), seed = b) for b in range(num_buildings)]
+                                   sun_powers = self.sun_powers, name = 'Building_{}'.format(b), seed = b, RL_building = self.RL_building) for b in range(num_buildings)]
 
         self.zeta = zeta
         self.done = False
@@ -108,7 +112,7 @@ class Building:
     When instanciated, it initialises the inside temperature to 21°C, the envelope temperature to 20, and resets the done
     and time variables.
     """
-    def __init__(self,random_day, ambient_temperatures, sun_powers,  name = '', seed = 0):
+    def __init__(self,random_day, ambient_temperatures, sun_powers,  name = '', seed = 0, RL_building = True):
         self.random_day = random_day
         self.ambient_temperatures = ambient_temperatures
         self.ambient_temperature = self.ambient_temperatures[random_day]
@@ -121,6 +125,12 @@ class Building:
         self.seed = seed
         np.random.seed(self.seed)
         self.T_MIN = T_MIN - seed*0.5
+        self.RL_building = RL_building
+        if RL_building:
+            if seed == 0:
+                self.brain = torch.load('data/environment/heating_19_5.pt',map_location=torch.device('cpu'))
+            else:
+                self.brain = torch.load('data/environment/heating_19.pt',map_location=torch.device('cpu'))
         self.base_loads += np.random.normal(loc=0.0, scale=0.075/1000, size=NUM_HOURS+1)
         self.base_load = self.base_loads[random_day]
         self.inside_temperature = 21
@@ -144,15 +154,21 @@ class Building:
         """
 
         current_penalty = COMFORT_PENALTY * (np.maximum(0,self.T_MIN-self.inside_temperature))
+        current_temperature_deficit = (np.maximum(0,self.T_MIN-self.inside_temperature))
         #expected_cost = (PRICE_SENSITIVITY * NOMINAL_HEAT_PUMP_POWER / (1e6) * price * TIME_STEP_SIZE / 3600)
 
-        if current_penalty/COMFORT_PENALTY >= 1:
-            #selected_action = -0.5*price/(PRICE_SET[-1]-10) + 1 + 5/(PRICE_SET[-1]-10)
-            selected_action = (PRICE_SET[-1] - COMFORT_PENALTY*price/current_penalty) / (PRICE_SET[-1] - 10)
-        elif current_penalty/COMFORT_PENALTY > 0:
-            selected_action =  (PRICE_SET[-1] - price)/(PRICE_SET[-1]-10)
+        if self.RL_building:
+            state = torch.tensor([self.inside_temperature,self.ambient_temperature,self.sun_power,price], dtype=torch.float)
+            state = self.brain.normalizer.normalize(state).unsqueeze(0)
+            selected_action = brain.select_action(state).type(torch.FloatTensor).item()
         else:
-            selected_action = 0
+            #if current_penalty/COMFORT_PENALTY >= 1:
+                #selected_action = -0.5*price/(PRICE_SET[-1]-10) + 1 + 5/(PRICE_SET[-1]-10)
+            #    selected_action = (PRICE_SET[-1] - COMFORT_PENALTY*price/current_penalty) / (PRICE_SET[-1] - 10)
+            if current_penalty/COMFORT_PENALTY > 0:
+                selected_action =  (PRICE_SET[-1] - price/(current_temperature_deficit+1))/(PRICE_SET[-1]-10)
+            else:
+                selected_action = 0
 
         #expected_costs = self.compute_expected_costs(price)
         #selected_action = HEATING_SETTINGS[np.argmin(expected_costs)]
@@ -209,7 +225,6 @@ class Building:
 
             expected_heating_cost = (PRICE_SENSITIVITY * heating_action * NOMINAL_HEAT_PUMP_POWER / (1e6) * price * TIME_STEP_SIZE / 3600)
             print(expected_heating_cost)
-
 
             costs.append(expected_heat_disutility + expected_heating_cost)
         return costs
