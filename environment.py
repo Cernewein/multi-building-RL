@@ -29,10 +29,8 @@ class System:
             '../heating-RL-agent/data/environment/ninja_weather_55.6838_12.5354_uncorrected.csv',
             header=3).iloc[self.random_day:self.random_day+NUM_HOURS+1,3]
 
-        if eval==True:
-            self.RL_building = False
-        else:
-            self.RL_building = RL_building
+
+        self.RL_building = RL_building
         self.buildings = [Building(random_day = self.random_day,ambient_temperatures = self.ambient_temperatures,
                                    sun_powers = self.sun_powers, name = 'Building_{}'.format(b), seed = b, RL_building = self.RL_building) for b in range(num_buildings)]
 
@@ -132,9 +130,13 @@ class Building:
                 self.brain = torch.load('data/environment/heating-RL-agentDDPG-1h-19.5.pt',map_location=torch.device('cpu'))
             else:
                 self.brain = torch.load('data/environment/heating-RL-agentDDPG-1h-19.pt',map_location=torch.device('cpu'))
+            self.brain.add_noise = False
+            self.brain.epsilon = 0
+            self.brain.eps_end = 0
         self.base_loads += np.random.normal(loc=0.0, scale=0.075/1000, size=NUM_HOURS+1)
         self.base_load = self.base_loads[random_day]
         self.inside_temperature = 21
+        self.action = 0
 
 
     def heat_pump_power(self, phi_e):
@@ -154,7 +156,7 @@ class Building:
         :return: Returns the new state after a step, the reward for the action and the done state
         """
 
-        current_penalty = COMFORT_PENALTY * (np.maximum(0,self.T_MIN-self.inside_temperature))
+        current_penalty = COMFORT_PENALTY * (np.maximum(0,self.T_MIN-self.inside_temperature) + np.maximum(0,self.inside_temperature-T_MAX))
         current_temperature_deficit = (np.maximum(0,self.T_MIN-self.inside_temperature))
         #expected_cost = (PRICE_SENSITIVITY * NOMINAL_HEAT_PUMP_POWER / (1e6) * price * TIME_STEP_SIZE / 3600)
 
@@ -162,14 +164,17 @@ class Building:
             state = torch.tensor([self.inside_temperature,self.ambient_temperature,self.sun_power,price], dtype=torch.float)
             state = self.brain.normalizer.normalize(state).unsqueeze(0)
             selected_action = self.brain.select_action(state).type(torch.FloatTensor).item()
+            #print(selected_action)
         else:
             #if current_penalty/COMFORT_PENALTY >= 1:
                 #selected_action = -0.5*price/(PRICE_SET[-1]-10) + 1 + 5/(PRICE_SET[-1]-10)
             #    selected_action = (PRICE_SET[-1] - COMFORT_PENALTY*price/current_penalty) / (PRICE_SET[-1] - 10)
             if current_penalty/COMFORT_PENALTY > 0:
-                selected_action =  (PRICE_SET[-1] - price/(current_temperature_deficit+1))/(PRICE_SET[-1]-10)
+                selected_action =  (PRICE_SET[-1] - price/(current_temperature_deficit+1))/(PRICE_SET[-1]-10/(current_temperature_deficit+1))
             else:
                 selected_action = 0
+
+        self.action = selected_action
 
         #expected_costs = self.compute_expected_costs(price)
         #selected_action = HEATING_SETTINGS[np.argmin(expected_costs)]
@@ -183,7 +188,8 @@ class Building:
         # Heat pump power is adjusted so that the power is expressed in MW and also adjusted to the correct time slot size
         heat_pump_power = selected_action * NOMINAL_HEAT_PUMP_POWER / (1e6) * TIME_STEP_SIZE / 3600
         total_load = (heat_pump_power + self.base_load * TIME_STEP_SIZE / 3600)
-        total_cost = total_load*price + current_penalty
+        total_cost = total_load*price * PRICE_PENALTY + current_penalty
+
 
         self.time +=1
 

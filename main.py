@@ -37,11 +37,13 @@ def run(ckpt,model_name,dynamic,soft, eval, model_type, RL):
             brain = torch.load(ckpt,map_location=torch.device('cpu'))
             brain.epsilon = 0
             brain.eps_end = 0
-            env = System(eval=True)
+            env = System(eval=False, RL_building=RL)
             inside_temperatures_1 = [env.buildings[0].inside_temperature]
             inside_temperatures_2 = [env.buildings[1].inside_temperature]
             base_loads_1 = [env.buildings[0].base_load]
             base_loads_2 = [env.buildings[1].base_load]
+            actions_building_1 = [0]
+            actions_building_2 = [0]
             ambient_temperatures = [env.ambient_temperature]
             total_loads = [env.total_load]
             actions = [0]
@@ -59,6 +61,8 @@ def run(ckpt,model_name,dynamic,soft, eval, model_type, RL):
                 rewards.append(reward)
                 inside_temperatures_1.append(env.buildings[0].inside_temperature)
                 inside_temperatures_2.append(env.buildings[1].inside_temperature)
+                actions_building_1.append(env.buildings[0].action)
+                actions_building_2.append(env.buildings[1].action)
                 base_loads_1.append(env.buildings[0].base_load)
                 base_loads_2.append(env.buildings[1].base_load)
                 ambient_temperatures.append(env.ambient_temperature)
@@ -78,6 +82,8 @@ def run(ckpt,model_name,dynamic,soft, eval, model_type, RL):
             eval_data['Inside Temperatures 2'] = inside_temperatures_2
             eval_data['Base Loads 1'] = base_loads_1
             eval_data['Base Loads 2'] = base_loads_2
+            eval_data['Actions 1'] = actions_building_1
+            eval_data['Actions 2'] = actions_building_2
             eval_data['Ambient Temperatures'] = ambient_temperatures
             eval_data['Actions'] = actions
             eval_data['Rewards'] = rewards
@@ -87,7 +93,7 @@ def run(ckpt,model_name,dynamic,soft, eval, model_type, RL):
 
 
             # Evaluation if price was kept constant
-            env = System(eval=True)
+            #env = System(eval=True)
             inside_temperatures_1 = [env.buildings[0].inside_temperature]
             inside_temperatures_2 = [env.buildings[1].inside_temperature]
             base_loads_1 = [env.buildings[0].base_load]

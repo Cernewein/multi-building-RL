@@ -27,7 +27,8 @@ ZETA = 0.3
 
 
 ##### Environment parameters
-COMFORT_PENALTY = 5 # Penalty applied when going outside of "comfort" bounds
+COMFORT_PENALTY = 10 # Penalty applied when going outside of "comfort" bounds
+PRICE_PENALTY = 1000
 T_MIN = 19.5 # Minimum temperature that should be achieved inside of the building
 T_MAX = 22.5 # Maximum temperature that should be achieved inside of the building
 C_I = 2.07*3.6e6 # Based on Emil Larsen's paper - heat capacity of the building
