@@ -24,10 +24,11 @@ def parse_args():
     parser.add_argument("--eval", default=False, type=lambda x: (str(x).lower() == 'true'))
     parser.add_argument("--model_type", default='DDPG')
     parser.add_argument("--RL", default=False, type=lambda x: (str(x).lower() == 'true'))
+    parser.add_argument("--january", default=False, type=lambda x: (str(x).lower() == 'true'))
     return parser.parse_args()
 
 
-def run(ckpt,model_name,dynamic,soft, eval, model_type, RL):
+def run(ckpt,model_name,dynamic,soft, eval, model_type, RL, january):
 
     if not eval:
         train_dqn(ckpt, model_name, dynamic, soft, RL)
@@ -37,7 +38,13 @@ def run(ckpt,model_name,dynamic,soft, eval, model_type, RL):
             brain = torch.load(ckpt,map_location=torch.device('cpu'))
             brain.epsilon = 0
             brain.eps_end = 0
-            env = System(eval=False, RL_building=RL)
+            env = System(eval=True, january = january, RL_building=RL)
+            if not january:
+                global NUM_HOURS
+                NUM_HOURS = 60*24
+                global NUM_TIME_STEPS
+                NUM_TIME_STEPS = int(NUM_HOURS * 3600 // TIME_STEP_SIZE)
+
             inside_temperatures_1 = [env.buildings[0].inside_temperature]
             inside_temperatures_2 = [env.buildings[1].inside_temperature]
             base_loads_1 = [env.buildings[0].base_load]
@@ -47,7 +54,7 @@ def run(ckpt,model_name,dynamic,soft, eval, model_type, RL):
             ambient_temperatures = [env.ambient_temperature]
             total_loads = [env.total_load]
             actions = [0]
-            rewards=[0]
+            rewards = [0]
             print('Starting evaluation of the model')
             state = env.reset()
             state = torch.tensor(state, dtype=torch.float).to(device)
@@ -90,7 +97,6 @@ def run(ckpt,model_name,dynamic,soft, eval, model_type, RL):
             eval_data['Total Load'] = total_loads
             with open(os.getcwd() + '/data/output/' + model_name + '_eval.pkl', 'wb') as f:
                 pkl.dump(eval_data, f)
-
 
             # Evaluation if price was kept constant
             #env = System(eval=True)

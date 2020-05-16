@@ -11,11 +11,18 @@ from DDPG import *
 
 
 class System:
-    def __init__(self, eval = False, num_buildings = 2, zeta = ZETA, RL_building = True):
+    def __init__(self, eval = False, num_buildings = 2, zeta = ZETA, january = False, RL_building = True):
         self.eval = eval
+        self.january = january
         # If we are in eval mode, select the month of january
         if self.eval:
-            self.random_day = 0 # First day of the year
+            if self.january:
+                self.random_day = 0 # First day of the year
+            else:
+                #np.random.seed(42) # Other wise always the same day for evaluation is selected
+                self.random_day = 304*24#random.randint(304, 365 - NUM_HOURS // 24 - 1) * 24
+                global NUM_HOURS
+                NUM_HOURS = 60*24
         else:
             # Else select November/December for training
             self.random_day=random.randint(304,365-NUM_HOURS//24-1)*24
@@ -81,7 +88,8 @@ class System:
 
     def reset(self):
         if self.eval:
-            self.random_day = 0 # First day of the year
+            if self.january:
+                self.random_day = 0 # First day of the year
         else:
             # Else select November/December for training
             self.random_day=random.randint(304,365-NUM_HOURS//24-1)*24
@@ -127,7 +135,7 @@ class Building:
         self.RL_building = RL_building
         if RL_building:
             if seed == 0:
-                self.brain = torch.load('data/environment/heating-RL-agentDDPG-1h-19.5.pt',map_location=torch.device('cpu'))
+                self.brain = torch.load('data/environment/heating-RL-agentDDPG-1h-19.5_more_responsive.pt',map_location=torch.device('cpu'))
             else:
                 self.brain = torch.load('data/environment/heating-RL-agentDDPG-1h-19.pt',map_location=torch.device('cpu'))
             self.brain.add_noise = False
