@@ -174,13 +174,15 @@ class Building:
             selected_action = self.brain.select_action(state).type(torch.FloatTensor).item()
             #print(selected_action)
         else:
-            if self.ambient_temperature >= 3:
+            if current_temperature_deficit == 0:
+                selected_action = 0
+            elif (self.ambient_temperature >= 3) and (current_temperature_deficit <= 1.5):
                 #selected_action = -0.5*price/(PRICE_SET[-1]-10) + 1 + 5/(PRICE_SET[-1]-10)
                 selected_action = (PRICE_SET[-1] - price) / (PRICE_SET[-1] - 10)
             elif self.ambient_temperature >= 0:
-                selected_action =  (PRICE_SET[-1]-5-0.5*pt)/ (PRICE_SET[-1] - 10)
+                selected_action =  (PRICE_SET[-1]-5-0.5*price)/ (PRICE_SET[-1] - 10)
             else:
-                selected_action = (PRICE_SET[-1]-8-0.2*pt)/ (PRICE_SET[-1] - 10)
+                selected_action = (PRICE_SET[-1]-8-0.2*price)/ (PRICE_SET[-1] - 10)
 
         self.action = selected_action
 
