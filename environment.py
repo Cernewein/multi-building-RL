@@ -157,8 +157,8 @@ class Building:
         return phi_e*(0.0606*self.ambient_temperature+2.612)
 
     def step(self, price):
-        """
 
+        """
         :param action: The chosen action - is the index of selected action from the action space.
         :type action: Integer
         :return: Returns the new state after a step, the reward for the action and the done state
@@ -169,18 +169,18 @@ class Building:
         #expected_cost = (PRICE_SENSITIVITY * NOMINAL_HEAT_PUMP_POWER / (1e6) * price * TIME_STEP_SIZE / 3600)
 
         if self.RL_building:
-            state = torch.tensor([self.inside_temperature,self.ambient_temperature,self.sun_power,price], dtype=torch.float)
+            state = torch.tensor([self.inside_temperature,self.ambient_temperature,self.sun_power,price], dtype=torch.float).to(device)
             state = self.brain.normalizer.normalize(state).unsqueeze(0)
             selected_action = self.brain.select_action(state).type(torch.FloatTensor).item()
             #print(selected_action)
         else:
-            #if current_penalty/COMFORT_PENALTY >= 1:
+            if self.ambient_temperature >= 3:
                 #selected_action = -0.5*price/(PRICE_SET[-1]-10) + 1 + 5/(PRICE_SET[-1]-10)
-            #    selected_action = (PRICE_SET[-1] - COMFORT_PENALTY*price/current_penalty) / (PRICE_SET[-1] - 10)
-            if current_penalty/COMFORT_PENALTY > 0:
-                selected_action =  (PRICE_SET[-1] - price/(current_temperature_deficit+1))/(PRICE_SET[-1]-10/(current_temperature_deficit+1))
+                selected_action = (PRICE_SET[-1] - price) / (PRICE_SET[-1] - 10)
+            elif self.ambient_temperature >= 0:
+                selected_action =  (PRICE_SET[-1]-5-0.5*pt)/ (PRICE_SET[-1] - 10)
             else:
-                selected_action = 0
+                selected_action = (PRICE_SET[-1]-8-0.2*pt)/ (PRICE_SET[-1] - 10)
 
         self.action = selected_action
 

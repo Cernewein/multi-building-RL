@@ -39,11 +39,6 @@ def run(ckpt,model_name,dynamic,soft, eval, model_type, RL, january):
             brain.epsilon = 0
             brain.eps_end = 0
             env = System(eval=True, january = january, RL_building=RL)
-            if not january:
-                global NUM_HOURS
-                NUM_HOURS = 60*24
-                global NUM_TIME_STEPS
-                NUM_TIME_STEPS = int(NUM_HOURS * 3600 // TIME_STEP_SIZE)
 
             inside_temperatures_1 = [env.buildings[0].inside_temperature]
             inside_temperatures_2 = [env.buildings[1].inside_temperature]
