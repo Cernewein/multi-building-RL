@@ -11,7 +11,7 @@ from DDPG import *
 
 
 class System:
-    def __init__(self, eval = False, num_buildings = 2, zeta = ZETA, january = False, RL_building = True):
+    def __init__(self, eval = False, num_buildings = NUM_BUILDINGS, zeta = ZETA, january = False, RL_building = True):
         self.eval = eval
         self.january = january
         # If we are in eval mode, select the month of january
@@ -38,8 +38,12 @@ class System:
 
 
         self.RL_building = RL_building
-        self.buildings = [Building(random_day = self.random_day,ambient_temperatures = self.ambient_temperatures,
-                                   sun_powers = self.sun_powers, name = 'Building_{}'.format(b), seed = b, RL_building = self.RL_building) for b in range(num_buildings)]
+        self.num_buildings = num_buildings
+        self.brain_19 = torch.load('data/environment/heating-RL-agentDDPG-1h-19_more_responsive.pt',map_location=torch.device('cpu'))
+        self.brain_19_5 = torch.load('data/environment/heating-RL-agentDDPG-1h-19.5_more_responsive.pt',map_location=torch.device('cpu'))
+        self.brains = [self.brain_19, self.brain_19_5]
+        self.buildings = [Building(random_day = self.random_day, ambient_temperatures = self.ambient_temperatures,
+                                   sun_powers = self.sun_powers, name = 'Building_{}'.format(b), seed = b, RL_building = self.RL_building, brains = self.brains) for b in range(num_buildings)]
 
         self.zeta = zeta
         self.done = False
@@ -62,8 +66,7 @@ class System:
             self.done = True
 
 
-        return [self.ambient_temperature, total_base_load, self.buildings[0].inside_temperature, self.buildings[1].inside_temperature,
-                self.time % int(24 * 3600 // TIME_STEP_SIZE)], r, self.done  #
+        return [self.ambient_temperature, total_base_load] + [self.buildings[b].inside_temperature for b in range(self.num_buildings)] + [self.time % int(24 * 3600 // TIME_STEP_SIZE)], r, self.done  #
 
     def get_loads_and_costs(self, action):
         total_load = 0
@@ -109,8 +112,7 @@ class System:
         for building in self.buildings:
             total_load += building.reset(self.random_day, self.ambient_temperatures, self.sun_powers)
 
-        return [self.ambient_temperature, total_load, self.buildings[0].inside_temperature, self.buildings[1].inside_temperature,
-                self.time % int(24 * 3600 // TIME_STEP_SIZE)]
+        return [self.ambient_temperature, total_load] + [self.buildings[b].inside_temperature for b in range(self.num_buildings)] + [self.time % int(24 * 3600 // TIME_STEP_SIZE)]
 
 
 
@@ -119,7 +121,7 @@ class Building:
     When instanciated, it initialises the inside temperature to 21°C, the envelope temperature to 20, and resets the done
     and time variables.
     """
-    def __init__(self,random_day, ambient_temperatures, sun_powers,  name = '', seed = 0, RL_building = True):
+    def __init__(self,random_day, ambient_temperatures, sun_powers,  name = '', seed = 0, RL_building = True, brains = ''):
         self.random_day = random_day
         self.ambient_temperatures = ambient_temperatures
         self.ambient_temperature = self.ambient_temperatures[random_day]
@@ -131,19 +133,20 @@ class Building:
             '../multi-building-RL/data/environment/2014_DK2_scaled_loads.csv',header=0).iloc[random_day:random_day+NUM_HOURS+1,1]
         self.seed = seed
         np.random.seed(self.seed)
-        self.T_MIN = T_MIN - seed*0.5
         self.RL_building = RL_building
         if RL_building:
-            if seed == 0:
-                self.brain = torch.load('data/environment/heating-RL-agentDDPG-1h-19.5_more_responsive.pt',map_location=torch.device('cpu'))
+            if seed <= NUM_BUILDINGS//2:
+                self.brain = brains[0]
+                self.T_MIN = T_MIN
             else:
-                self.brain = torch.load('data/environment/heating-RL-agentDDPG-1h-19.pt',map_location=torch.device('cpu'))
+                self.brain = brains[1]
+                self.T_MIN = T_MIN - 0.5
             self.brain.add_noise = False
             self.brain.epsilon = 0
             self.brain.eps_end = 0
         self.base_loads += np.random.normal(loc=0.0, scale=0.075/1000, size=NUM_HOURS+1)
         self.base_load = self.base_loads[random_day]
-        self.inside_temperature = 21
+        self.inside_temperature = np.random.randint(20, 23)
         self.action = 0
 
 
@@ -175,11 +178,11 @@ class Building:
             #print(selected_action)
         else:
             if current_temperature_deficit == 0:
-                selected_action = 0
-            elif (self.ambient_temperature >= 3) and (current_temperature_deficit <= 1.5):
+                selected_action = np.maximum(0, (PRICE_SET[-1] - 30 - price) / (PRICE_SET[-1] - 20))
+            elif (self.ambient_temperature >= 0) and (current_temperature_deficit <= 1.5):
                 #selected_action = -0.5*price/(PRICE_SET[-1]-10) + 1 + 5/(PRICE_SET[-1]-10)
                 selected_action = (PRICE_SET[-1] - price) / (PRICE_SET[-1] - 10)
-            elif self.ambient_temperature >= 0:
+            elif self.ambient_temperature >= -2:
                 selected_action =  (PRICE_SET[-1]-5-0.5*price)/ (PRICE_SET[-1] - 10)
             else:
                 selected_action = (PRICE_SET[-1]-8-0.2*price)/ (PRICE_SET[-1] - 10)
@@ -215,7 +218,7 @@ class Building:
         :return: Returns the resetted inside temperature, ambient temperature and sun power
         """
         np.random.seed(self.seed)
-        self.inside_temperature = 21
+        self.inside_temperature = np.random.randint(20,23)
         self.random_day = random_day
         self.ambient_temperatures = ambient_temperatures
         self.ambient_temperature = self.ambient_temperatures[random_day]

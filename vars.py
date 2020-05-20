@@ -16,14 +16,16 @@ TARGET_UPDATE = 10
 BATCH_SIZE = 32
 PRICE_SET = [10,20,30,40,50,60]
 N_ACTIONS = len(PRICE_SET)
-INPUT_DIMS = 5
+NUM_BUILDINGS = 10
+INPUT_DIMS = 3 + NUM_BUILDINGS
 FC_1_DIMS = 100
 FC_2_DIMS = 200
 FC_3_DIMS = FC_2_DIMS # If we don't want a third layer, set this to FC_2_DIMS
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 TAU = 0.001 # For soft update
 MEMORY_SIZE = 1000*31*24
-ZETA = 0.3
+ZETA = 0.1
+
 
 
 ##### Environment parameters
@@ -39,6 +41,6 @@ R_EA = 4.47e-3 # Thermal resistance between interior and ambient. Based on Emil 
 A_w = 7.89 # Window surface area
 NOMINAL_HEAT_PUMP_POWER = 2000 # 2kW based on some quick loockup of purchaseable heat pumps
 PRICE_SENSITIVITY = 200
-L_MAX = 5 / 1000 # N kWh scales down to MWh
+L_MAX = 4 / 1000 # N kWh scales down to MWh
 LOAD_PENALTY = 1000
 HEATING_SETTINGS = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
