@@ -5,10 +5,10 @@ NUM_HOURS = 31*24
 NUM_TIME_STEPS = int(NUM_HOURS*3600//TIME_STEP_SIZE) # A total of 12 hours computed every second
 
 ##### RL Agent parameters
-NUM_EPISODES = 1000 # Number of episodes
+NUM_EPISODES = 4000 # Number of episodes
 EPSILON = 1 # For epsilon-greedy approach
 EPS_DECAY = 0.99997
-LEARNING_RATE = 0.00025
+LEARNING_RATE = 0.001
 LEARNING_RATE_ACTOR = 1e-4
 LEARNING_RATE_CRITIC = 1e-3
 GAMMA = 0.99
@@ -29,8 +29,8 @@ ZETA = 0.1
 
 
 ##### Environment parameters
-COMFORT_PENALTY = 10 # Penalty applied when going outside of "comfort" bounds
-PRICE_PENALTY = 1
+COMFORT_PENALTY = 1 # Penalty applied when going outside of "comfort" bounds
+PRICE_PENALTY = 0.1
 T_MIN = 19.5 # Minimum temperature that should be achieved inside of the building
 T_MAX = 22.5 # Maximum temperature that should be achieved inside of the building
 C_I = 2.07*3.6e6 # Based on Emil Larsen's paper - heat capacity of the building
@@ -41,6 +41,6 @@ R_EA = 4.47e-3 # Thermal resistance between interior and ambient. Based on Emil 
 A_w = 7.89 # Window surface area
 NOMINAL_HEAT_PUMP_POWER = 2000 # 2kW based on some quick loockup of purchaseable heat pumps
 PRICE_SENSITIVITY = 200
-L_MAX = 4 / 1000 # N kWh scales down to MWh
-LOAD_PENALTY = 1000
+L_MAX = 2*(NUM_BUILDINGS-1) / 1000 # N kWh scales down to MWh
+LOAD_PENALTY = 100
 HEATING_SETTINGS = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]

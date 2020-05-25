@@ -105,7 +105,7 @@ def run(ckpt,model_name,dynamic,soft, eval, model_type, RL, january):
             print('Starting evaluation of the model')
             state = env.reset()
             for t_episode in range(NUM_TIME_STEPS):
-                next_state, reward, done = env.step(2)
+                next_state, reward, done = env.step(0)
                 rewards.append(reward)
                 inside_temperatures_1.append(env.buildings[0].inside_temperature)
                 inside_temperatures_2.append(env.buildings[1].inside_temperature)

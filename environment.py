@@ -135,7 +135,7 @@ class Building:
         np.random.seed(self.seed)
         self.RL_building = RL_building
         if RL_building:
-            if seed <= NUM_BUILDINGS//2:
+            if seed < NUM_BUILDINGS//2:
                 self.brain = brains[0]
                 self.T_MIN = T_MIN
             else:
@@ -146,7 +146,7 @@ class Building:
             self.brain.eps_end = 0
         self.base_loads += np.random.normal(loc=0.0, scale=0.075/1000, size=NUM_HOURS+1)
         self.base_load = self.base_loads[random_day]
-        self.inside_temperature = np.random.randint(20, 23)
+        self.inside_temperature = 20.5 + np.random.rand()
         self.action = 0
 
 
@@ -218,7 +218,7 @@ class Building:
         :return: Returns the resetted inside temperature, ambient temperature and sun power
         """
         np.random.seed(self.seed)
-        self.inside_temperature = np.random.randint(20,23)
+        self.inside_temperature = 20.5 + np.random.rand()
         self.random_day = random_day
         self.ambient_temperatures = ambient_temperatures
         self.ambient_temperature = self.ambient_temperatures[random_day]
