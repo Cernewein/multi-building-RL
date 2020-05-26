@@ -64,9 +64,10 @@ class System:
 
         if self.time >= NUM_TIME_STEPS:
             self.done = True
+        mean_temp_19 = np.mean([self.buildings[b].inside_temperature for b in range(self.num_buildings//2)])
+        mean_temp_19_5 = np.mean([self.buildings[b].inside_temperature for b in range(self.num_buildings//2, self.num_buildings)])
 
-
-        return [self.ambient_temperature, total_base_load] + [self.buildings[b].inside_temperature for b in range(self.num_buildings)] + [self.time % int(24 * 3600 // TIME_STEP_SIZE)], r, self.done  #
+        return [self.ambient_temperature, total_base_load, mean_temp_19, mean_temp_19_5, self.time % int(24 * 3600 // TIME_STEP_SIZE)], r, self.done  #
 
     def get_loads_and_costs(self, action):
         total_load = 0
@@ -112,7 +113,10 @@ class System:
         for building in self.buildings:
             total_load += building.reset(self.random_day, self.ambient_temperatures, self.sun_powers)
 
-        return [self.ambient_temperature, total_load] + [self.buildings[b].inside_temperature for b in range(self.num_buildings)] + [self.time % int(24 * 3600 // TIME_STEP_SIZE)]
+        mean_temp_19 = np.mean([self.buildings[b].inside_temperature for b in range(self.num_buildings//2)])
+        mean_temp_19_5 = np.mean([self.buildings[b].inside_temperature for b in range(self.num_buildings//2, self.num_buildings)])
+
+        return [self.ambient_temperature, total_load, mean_temp_19, mean_temp_19_5, self.time % int(24 * 3600 // TIME_STEP_SIZE)]
 
 
 
@@ -137,10 +141,10 @@ class Building:
         if RL_building:
             if seed < NUM_BUILDINGS//2:
                 self.brain = brains[0]
-                self.T_MIN = T_MIN
+                self.T_MIN = T_MIN - 0.5
             else:
                 self.brain = brains[1]
-                self.T_MIN = T_MIN - 0.5
+                self.T_MIN = T_MIN
             self.brain.add_noise = False
             self.brain.epsilon = 0
             self.brain.eps_end = 0
@@ -196,7 +200,7 @@ class Building:
         delta = 1 / (R_IA * C_I) * (self.ambient_temperature - self.inside_temperature) + \
                 self.heat_pump_power(NOMINAL_HEAT_PUMP_POWER*selected_action)/C_I + A_w*self.sun_power/C_I
 
-        self.inside_temperature += delta * TIME_STEP_SIZE
+        self.inside_temperature += delta * TIME_STEP_SIZE + 0.2*np.random.rand()-0.1
 
         # Heat pump power is adjusted so that the power is expressed in MW and also adjusted to the correct time slot size
         heat_pump_power = selected_action * NOMINAL_HEAT_PUMP_POWER / (1e6) * TIME_STEP_SIZE / 3600
