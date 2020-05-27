@@ -13,6 +13,7 @@ import torch
 import pandas as pd
 import numpy as np
 from train_dqn import train_dqn
+from train_ddpg import train_ddpg
 
 
 def parse_args():
@@ -31,7 +32,10 @@ def parse_args():
 def run(ckpt,model_name,dynamic,soft, eval, model_type, RL, january):
 
     if not eval:
-        train_dqn(ckpt, model_name, dynamic, soft, RL)
+        if model_type != 'DDPG':
+            train_dqn(ckpt, model_name, dynamic, soft, RL)
+        else:
+            train_ddpg(model_name, RL)
 
     else:
         if ckpt:

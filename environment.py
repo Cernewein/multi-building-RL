@@ -11,7 +11,7 @@ from DDPG import *
 
 
 class System:
-    def __init__(self, eval = False, num_buildings = NUM_BUILDINGS, zeta = ZETA, january = False, RL_building = True):
+    def __init__(self, eval = False, num_buildings = NUM_BUILDINGS, zeta = ZETA, january = False, RL_building = True, continuous = False):
         self.eval = eval
         self.january = january
         # If we are in eval mode, select the month of january
@@ -36,7 +36,7 @@ class System:
             '../heating-RL-agent/data/environment/ninja_weather_55.6838_12.5354_uncorrected.csv',
             header=3).iloc[self.random_day:self.random_day+NUM_HOURS+1,3]
 
-
+        self.continuous = continuous
         self.RL_building = RL_building
         self.num_buildings = num_buildings
         self.brain_19 = torch.load('data/environment/heating-RL-agentDDPG-1h-19_more_responsive.pt',map_location=torch.device('cpu'))
@@ -52,7 +52,11 @@ class System:
 
     def step(self, action):
 
-        price = PRICE_SET[int(action)]
+
+        if self.continuous:
+            price = action*MAX_PRICE
+        else:
+            price = PRICE_SET[int(action)]
 
         total_load,total_base_load, building_costs = self.get_loads_and_costs(price)
         self.total_load = total_load
@@ -148,6 +152,9 @@ class Building:
             self.brain.add_noise = False
             self.brain.epsilon = 0
             self.brain.eps_end = 0
+
+        else:
+            self.T_MIN = T_MIN
         self.base_loads += np.random.normal(loc=0.0, scale=0.075/1000, size=NUM_HOURS+1)
         self.base_load = self.base_loads[random_day]
         self.inside_temperature = 20.5 + np.random.rand()

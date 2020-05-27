@@ -5,7 +5,7 @@ NUM_HOURS = 31*24
 NUM_TIME_STEPS = int(NUM_HOURS*3600//TIME_STEP_SIZE) # A total of 12 hours computed every second
 
 ##### RL Agent parameters
-NUM_EPISODES = 4000 # Number of episodes
+NUM_EPISODES = 1 # Number of episodes
 EPSILON = 1 # For epsilon-greedy approach
 EPS_DECAY = 0.99997
 LEARNING_RATE = 0.001
@@ -15,6 +15,7 @@ GAMMA = 0.99
 TARGET_UPDATE = 10
 BATCH_SIZE = 32
 PRICE_SET = [10,20,30,40,50,60]
+MAX_PRICE = 60
 N_ACTIONS = len(PRICE_SET)
 NUM_BUILDINGS = 10
 INPUT_DIMS = 5

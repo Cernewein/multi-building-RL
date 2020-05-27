@@ -2,6 +2,8 @@ import torch
 from vars import *
 from collections import namedtuple
 import random
+import numpy as np
+import copy
 #from environment import Building
 
 # Taken from
