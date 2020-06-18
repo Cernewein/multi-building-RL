@@ -85,7 +85,7 @@ def train_ddpg(model_name, RL = True):
 
 
     scores.append(model_params)
-    with open(os.getcwd() + '/data/output/' + model_name + '_dynamic_' + str(dynamic) + '_rewards_dqn.pkl', 'wb') as f:
+    with open(os.getcwd() + '/data/output/' + model_name + '_rewards_dqn.pkl', 'wb') as f:
         pkl.dump(scores, f)
 
 

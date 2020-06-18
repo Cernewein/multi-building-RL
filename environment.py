@@ -11,9 +11,10 @@ from DDPG import *
 
 
 class System:
-    def __init__(self, eval = False, num_buildings = NUM_BUILDINGS, zeta = ZETA, january = False, RL_building = True, continuous = False):
+    def __init__(self, eval = False, num_buildings = NUM_BUILDINGS, zeta = ZETA, january = False, RL_building = True, continuous = False, spot = False):
         self.eval = eval
         self.january = january
+        self.spot = spot
         # If we are in eval mode, select the month of january
         if self.eval:
             if self.january:
@@ -48,6 +49,8 @@ class System:
         self.zeta = zeta
         self.done = False
         self.time = 0
+        self.total_power_cost = 0
+        self.heat_disutility = 0
         self.total_load = sum(self.buildings[i].base_load for i in range(num_buildings))
 
     def step(self, action):
@@ -55,11 +58,15 @@ class System:
 
         if self.continuous:
             price = action*MAX_PRICE
+        elif self.spot:
+            price = action
         else:
             price = PRICE_SET[int(action)]
 
-        total_load,total_base_load, building_costs = self.get_loads_and_costs(price)
+        total_load,total_base_load, building_costs, total_power_cost = self.get_loads_and_costs(price)
         self.total_load = total_load
+        self.total_power_cost = total_power_cost
+        self.heat_disutility = building_costs - total_power_cost
 
         self.ambient_temperature = self.ambient_temperatures[self.random_day + (self.time * TIME_STEP_SIZE) // 3600]
 
@@ -77,15 +84,17 @@ class System:
         total_load = 0
         total_cost = 0
         total_base_load = 0
+        total_power_cost = 0
         for building in self.buildings:
-            load, base_load,cost = building.step(action)
+            load, base_load,cost, power_cost = building.step(action)
             total_load += load
             total_base_load += base_load
             total_cost += cost
+            total_power_cost += power_cost
         #print(total_load)
 
 
-        return total_load,total_base_load, total_cost
+        return total_load,total_base_load, total_cost, total_power_cost
 
     def reward(self, total_load, building_costs):
         penalty = np.maximum(0, total_load - L_MAX)
@@ -114,6 +123,7 @@ class System:
         self.done = False
         self.time = 0
         total_load = 0
+        self.total_power_cost = 0
         for building in self.buildings:
             total_load += building.reset(self.random_day, self.ambient_temperatures, self.sun_powers)
 
@@ -212,15 +222,15 @@ class Building:
         # Heat pump power is adjusted so that the power is expressed in MW and also adjusted to the correct time slot size
         heat_pump_power = selected_action * NOMINAL_HEAT_PUMP_POWER / (1e6) * TIME_STEP_SIZE / 3600
         total_load = (heat_pump_power + self.base_load * TIME_STEP_SIZE / 3600)
-        total_cost = total_load*price * PRICE_PENALTY + current_penalty
-
+        power_cost = total_load*price
+        total_cost = power_cost * PRICE_PENALTY + current_penalty
 
         self.time +=1
 
         self.ambient_temperature = self.ambient_temperatures[self.random_day + (self.time * TIME_STEP_SIZE)//3600]
         self.sun_power = self.sun_powers[self.random_day + (self.time * TIME_STEP_SIZE)//3600]
         self.base_load = self.base_loads[self.random_day + (self.time * TIME_STEP_SIZE) // 3600]
-        return total_load, self.base_load, total_cost
+        return total_load, self.base_load, total_cost, power_cost
 
     def reset(self, random_day ,ambient_temperatures, sun_powers):
         """
