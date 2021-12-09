@@ -46,4 +46,4 @@ The aggregation agent learns to set prices according the total load and is able 
 * House 1 -> 20 °C
 * House 2 -> 19 °C
 
-![](/images/twoBuildingsLoad.PNG)
+![](/images/twoBuildingsLoad.png)
